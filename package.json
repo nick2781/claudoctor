@@ -11,10 +11,13 @@
     "audit",
     "lint"
   ],
-  "homepage": "https://github.com/nickyang2781/claudoctor",
+  "homepage": "https://github.com/nick2781/claudoctor#readme",
   "repository": {
     "type": "git",
-    "url": "https://github.com/nickyang2781/claudoctor.git"
+    "url": "git+https://github.com/nick2781/claudoctor.git"
+  },
+  "bugs": {
+    "url": "https://github.com/nick2781/claudoctor/issues"
   },
   "license": "MIT",
   "author": "Nick Yang",
