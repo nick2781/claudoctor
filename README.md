@@ -28,6 +28,7 @@ Scans known skill locations across Claude Code, Codex, Cursor, and Hermes and re
 claudoctor skills                          # human-readable report
 claudoctor skills --json                   # machine-readable, pipe-friendly
 claudoctor skills --source claude,codex    # restrict by agent
+claudoctor skills --exclude '**/openclaw-imports/**'
 claudoctor skills --top 30 --threshold 0.6 # tweak rank + overlap sensitivity
 ```
 
@@ -38,7 +39,7 @@ Scanned locations:
 | claude | `~/.claude/skills/`, `~/.claude/plugins/cache/`, `~/.claude/plugins/marketplaces/` |
 | codex  | `~/.codex/skills/` |
 | hermes | `~/.hermes/skills/` |
-| cursor | `~/.cursor/rules/` |
+| cursor | `~/.cursor/rules/`, `$PWD/.cursor/rules/` |
 | project| `$PWD/.claude/skills/` |
 
 ## Roadmap

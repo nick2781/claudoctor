@@ -7,6 +7,7 @@ export interface SkillsOptions {
   json?: boolean;
   deep?: boolean;
   source?: string;
+  exclude?: string;
   top?: string;
   threshold?: string;
 }
@@ -18,8 +19,11 @@ export async function runSkills(opts: SkillsOptions): Promise<void> {
   const wanted = opts.source
     ? opts.source.split(',').map((s) => s.trim()).filter(Boolean)
     : undefined;
+  const exclude = opts.exclude
+    ? opts.exclude.split(',').map((s) => s.trim()).filter(Boolean)
+    : undefined;
   const sources = filterSources(defaultSources(), wanted);
-  const skills = await discover(sources);
+  const skills = await discover(sources, { exclude });
   let top = 20;
   if (opts.top !== undefined) {
     const parsed = parseInt(opts.top, 10);

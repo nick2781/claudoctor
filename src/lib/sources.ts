@@ -57,6 +57,12 @@ export function defaultSources(): SourceRoot[] {
       root: cwd,
       patterns: ['.claude/skills/**/SKILL.md'],
     },
+    {
+      agent: 'cursor',
+      label: 'cursor/project',
+      root: cwd,
+      patterns: ['.cursor/rules/**/*.mdc', '.cursor/rules/**/*.md'],
+    },
   ];
 }
 

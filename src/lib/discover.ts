@@ -37,7 +37,10 @@ function deriveName(file: string, fmName: unknown, fallback: string): string {
   return fallback;
 }
 
-export async function discover(sources: SourceRoot[]): Promise<Skill[]> {
+export async function discover(
+  sources: SourceRoot[],
+  opts?: { exclude?: string[] },
+): Promise<Skill[]> {
   const out: Skill[] = [];
   const seen = new Set<string>();
 
@@ -46,6 +49,7 @@ export async function discover(sources: SourceRoot[]): Promise<Skill[]> {
     const files = await fg(src.patterns, {
       cwd: src.root,
       absolute: true,
+      ignore: opts?.exclude,
       followSymbolicLinks: false,
       onlyFiles: true,
       suppressErrors: true,

@@ -14,6 +14,7 @@ program
   .option('--json', 'Output as JSON for piping')
   .option('--deep', 'Use local claude CLI for semantic conflict detection (v0.2)')
   .option('--source <list>', 'Comma list of agents: claude,codex,cursor,hermes,project')
+  .option('--exclude <list>', 'Exclude file globs (e.g. **/openclaw-imports/**,**/node_modules/**)')
   .option('--top <n>', 'Top N skills in token rank', '20')
   .option('--threshold <n>', 'Overlap similarity threshold 0..1', '0.5')
   .action(async (opts) => {
