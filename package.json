@@ -1,0 +1,58 @@
+{
+  "name": "claudoctor",
+  "version": "0.0.1",
+  "description": "Audit and clean up your Claude Code / Cursor skills \u2014 find duplicates, conflicts, and token bloat.",
+  "keywords": [
+    "claude",
+    "claude-code",
+    "skills",
+    "cli",
+    "tokens",
+    "audit",
+    "lint"
+  ],
+  "homepage": "https://github.com/nickyang2781/claudoctor",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nickyang2781/claudoctor.git"
+  },
+  "license": "MIT",
+  "author": "Nick Yang",
+  "type": "module",
+  "bin": {
+    "claudoctor": "dist/cli.cjs"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "dev": "tsx src/cli.ts",
+    "build": "tsup",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "tsc --noEmit",
+    "prepublishOnly": "npm run build"
+  },
+  "dependencies": {
+    "@anthropic-ai/tokenizer": "^0.0.4",
+    "chalk": "^5.3.0",
+    "cli-table3": "^0.6.5",
+    "commander": "^12.1.0",
+    "execa": "^9.5.1",
+    "fast-glob": "^3.3.2",
+    "gray-matter": "^4.0.3",
+    "ora": "^8.1.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "tsup": "^8.3.5",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}
