@@ -1,20 +1,29 @@
 import { Command } from 'commander';
-import chalk from 'chalk';
+import { runSkills } from './commands/skills.js';
 
 const program = new Command();
 
 program
   .name('claudoctor')
   .description('Audit and clean up your Claude Code / Cursor skills.')
-  .version('0.0.1');
+  .version('0.1.0');
 
 program
   .command('skills')
-  .description('Audit local skills: duplicates, conflicts, token usage.')
-  .option('--deep', 'Use local claude CLI for semantic conflict detection')
-  .option('--json', 'Output as JSON')
-  .action((opts) => {
-    console.log(chalk.cyan('claudoctor skills'), chalk.dim('(stub)'), opts);
+  .description('Audit local skills: duplicates, conflicts, overlap, token usage.')
+  .option('--json', 'Output as JSON for piping')
+  .option('--deep', 'Use local claude CLI for semantic conflict detection (v0.2)')
+  .option('--source <list>', 'Comma list of agents: claude,codex,cursor,hermes,project')
+  .option('--top <n>', 'Top N skills in token rank', '20')
+  .option('--threshold <n>', 'Overlap similarity threshold 0..1', '0.5')
+  .action(async (opts) => {
+    try {
+      await runSkills(opts);
+    } catch (err) {
+      const msg = err instanceof Error ? err.stack ?? err.message : String(err);
+      process.stderr.write(`claudoctor: ${msg}\n`);
+      process.exit(1);
+    }
   });
 
-program.parse();
+program.parseAsync();

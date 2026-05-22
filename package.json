@@ -1,6 +1,6 @@
 {
   "name": "claudoctor",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "Audit and clean up your Claude Code / Cursor skills \u2014 find duplicates, conflicts, and token bloat.",
   "keywords": [
     "claude",
@@ -20,7 +20,7 @@
   "author": "Nick Yang",
   "type": "module",
   "bin": {
-    "claudoctor": "dist/cli.cjs"
+    "claudoctor": "dist/cli.mjs"
   },
   "files": [
     "dist",
