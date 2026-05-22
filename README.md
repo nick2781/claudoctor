@@ -1,5 +1,7 @@
 # claudoctor
 
+**English** · [简体中文](README.zh-CN.md)
+
 > The lint tool for agent skills. Audit and clean up your Claude Code / Codex / Cursor / Hermes skills — find duplicates, conflicts, and token bloat.
 
 [![npm version](https://img.shields.io/npm/v/claudoctor.svg)](https://www.npmjs.com/package/claudoctor)
