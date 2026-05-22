@@ -19,6 +19,7 @@ export interface Skill {
   bytes: number;
   tokens: number;
   contentHash: string;
+  bodyHash: string;
 }
 
 async function exists(p: string): Promise<boolean> {
@@ -75,6 +76,7 @@ export async function discover(
         typeof fm.description === 'string' ? fm.description.trim() : '';
       const bytes = Buffer.byteLength(raw, 'utf8');
       const hash = crypto.createHash('sha256').update(raw).digest('hex').slice(0, 16);
+      const bodyHash = crypto.createHash('sha256').update(body.trim()).digest('hex').slice(0, 16);
 
       out.push({
         agent: src.agent,
@@ -89,6 +91,7 @@ export async function discover(
         bytes,
         tokens: tokens(raw),
         contentHash: hash,
+        bodyHash,
       });
     }
   }

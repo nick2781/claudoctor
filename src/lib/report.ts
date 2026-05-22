@@ -80,6 +80,32 @@ export function renderText(a: Analysis, opts: RenderOptions = {}): string {
   }
 
   lines.push('');
+  if (a.nearDuplicates.length === 0) {
+    lines.push(chalk.dim('No near-duplicates (same body, different frontmatter).'));
+  } else {
+    lines.push(chalk.bold(`Near-duplicates (${a.nearDuplicates.length})`));
+    lines.push(chalk.dim('  Same body bytes, different frontmatter — likely frontmatter drift.'));
+    const nt = new Table({
+      head: [chalk.bold('Name'), 'Variants', 'Per-copy', 'Wasted', 'Locations'],
+      style: { head: [], border: [] },
+      colWidths: [22, 9, 9, 8, 60],
+      wordWrap: true,
+    });
+    for (const g of a.nearDuplicates) {
+      nt.push([
+        g.name,
+        g.variants.length,
+        fmtTokens(g.tokens),
+        chalk.yellow(fmtTokens(g.wastedTokens)),
+        g.variants
+          .map((v) => `${v.agent} (${v.contentHash.slice(0, 7)}): ${skillLoc(v)}`)
+          .join('\n'),
+      ]);
+    }
+    lines.push(nt.toString());
+  }
+
+  lines.push('');
   if (a.conflicts.length === 0) {
     lines.push(chalk.dim('No name conflicts.'));
   } else {
@@ -110,19 +136,33 @@ export function renderText(a: Analysis, opts: RenderOptions = {}): string {
         ? `Overlap (showing top ${a.overlaps.length} of ${a.overlapsTotal})`
         : `Overlap (${a.overlaps.length})`;
     lines.push(chalk.bold(overlapHeading));
+    const hasDeep = a.overlaps.some((o) => o.bodySimilarity !== undefined);
     const ot = new Table({
-      head: [chalk.bold('Sim'), 'A', 'B', 'Save'],
+      head: hasDeep
+        ? [chalk.bold('Sim'), 'Desc', 'Body', 'A', 'B', 'Save']
+        : [chalk.bold('Sim'), 'A', 'B', 'Save'],
       style: { head: [], border: [] },
-      colWidths: [6, 36, 36, 8],
+      colWidths: hasDeep ? [6, 6, 6, 30, 30, 8] : [6, 36, 36, 8],
       wordWrap: true,
     });
     for (const o of a.overlaps) {
-      ot.push([
-        o.similarity.toFixed(2),
-        `${o.a.name} (${o.a.agent})`,
-        `${o.b.name} (${o.b.agent})`,
-        fmtTokens(o.smallerTokens),
-      ]);
+      if (hasDeep) {
+        ot.push([
+          o.similarity.toFixed(2),
+          o.descSimilarity.toFixed(2),
+          o.bodySimilarity === undefined ? '-' : o.bodySimilarity.toFixed(2),
+          `${o.a.name} (${o.a.agent})`,
+          `${o.b.name} (${o.b.agent})`,
+          fmtTokens(o.smallerTokens),
+        ]);
+      } else {
+        ot.push([
+          o.similarity.toFixed(2),
+          `${o.a.name} (${o.a.agent})`,
+          `${o.b.name} (${o.b.agent})`,
+          fmtTokens(o.smallerTokens),
+        ]);
+      }
     }
     lines.push(ot.toString());
   }
@@ -130,13 +170,16 @@ export function renderText(a: Analysis, opts: RenderOptions = {}): string {
   lines.push('');
   lines.push(chalk.bold('Estimated savings'));
   lines.push(
-    `  Duplicates: ${chalk.yellow(fmtTokens(a.savings.duplicateTokens))} tokens`
+    `  Duplicates:      ${chalk.yellow(fmtTokens(a.savings.duplicateTokens))} tokens`
   );
   lines.push(
-    `  Overlap:    ${chalk.yellow(fmtTokens(a.savings.overlapTokens))} tokens`
+    `  Near-duplicates: ${chalk.yellow(fmtTokens(a.savings.nearDuplicateTokens))} tokens`
   );
   lines.push(
-    `  Total:      ${chalk.green.bold(fmtTokens(a.savings.totalEstimated))} tokens`
+    `  Overlap:         ${chalk.yellow(fmtTokens(a.savings.overlapTokens))} tokens`
+  );
+  lines.push(
+    `  Total:           ${chalk.green.bold(fmtTokens(a.savings.totalEstimated))} tokens`
   );
 
   return lines.join('\n');
@@ -152,6 +195,7 @@ export function renderJson(a: Analysis): string {
     tokens: s.tokens,
     bytes: s.bytes,
     contentHash: s.contentHash,
+    bodyHash: s.bodyHash,
   });
   return JSON.stringify(
     {
@@ -166,6 +210,13 @@ export function renderJson(a: Analysis): string {
         wastedTokens: g.wastedTokens,
         copies: g.copies.map(slim),
       })),
+      nearDuplicates: a.nearDuplicates.map((g) => ({
+        name: g.name,
+        bodyHash: g.bodyHash,
+        tokens: g.tokens,
+        wastedTokens: g.wastedTokens,
+        variants: g.variants.map(slim),
+      })),
       conflicts: a.conflicts.map((c) => ({
         name: c.name,
         tokens: c.tokens,
@@ -174,6 +225,8 @@ export function renderJson(a: Analysis): string {
       overlapsTotal: a.overlapsTotal,
       overlaps: a.overlaps.map((o) => ({
         similarity: o.similarity,
+        descSimilarity: o.descSimilarity,
+        bodySimilarity: o.bodySimilarity,
         smallerTokens: o.smallerTokens,
         a: slim(o.a),
         b: slim(o.b),
