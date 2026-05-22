@@ -7,19 +7,20 @@ export interface SkillsOptions {
   json?: boolean;
   deep?: boolean;
   source?: string;
+  exclude?: string;
   top?: string;
   threshold?: string;
 }
 
 export async function runSkills(opts: SkillsOptions): Promise<void> {
-  if (opts.deep) {
-    process.stderr.write('[claudoctor] --deep not implemented in v0.1, ignoring.\n');
-  }
   const wanted = opts.source
     ? opts.source.split(',').map((s) => s.trim()).filter(Boolean)
     : undefined;
+  const exclude = opts.exclude
+    ? opts.exclude.split(',').map((s) => s.trim()).filter(Boolean)
+    : undefined;
   const sources = filterSources(defaultSources(), wanted);
-  const skills = await discover(sources);
+  const skills = await discover(sources, { exclude });
   let top = 20;
   if (opts.top !== undefined) {
     const parsed = parseInt(opts.top, 10);
@@ -30,7 +31,7 @@ export async function runSkills(opts: SkillsOptions): Promise<void> {
     }
   }
   const threshold = opts.threshold ? Math.min(1, Math.max(0, parseFloat(opts.threshold))) : 0.5;
-  const result = analyze(skills, { overlapThreshold: threshold });
+  const result = analyze(skills, { overlapThreshold: threshold, deep: !!opts.deep });
   if (opts.json) {
     process.stdout.write(renderJson(result) + '\n');
   } else {

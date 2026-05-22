@@ -16,10 +16,21 @@ export interface ConflictGroup {
   tokens: number;
 }
 
+export interface NearDuplicateGroup {
+  kind: 'near-duplicate';
+  name: string;
+  bodyHash: string;
+  tokens: number;
+  variants: Skill[];
+  wastedTokens: number;
+}
+
 export interface OverlapPair {
   kind: 'overlap';
   a: Skill;
   b: Skill;
+  descSimilarity: number;
+  bodySimilarity?: number;
   similarity: number;
   smallerTokens: number;
 }
@@ -30,11 +41,13 @@ export interface Analysis {
   totalSkills: number;
   byAgent: Record<string, { count: number; tokens: number }>;
   duplicates: DuplicateGroup[];
+  nearDuplicates: NearDuplicateGroup[];
   conflicts: ConflictGroup[];
   overlaps: OverlapPair[];
   overlapsTotal: number;
   savings: {
     duplicateTokens: number;
+    nearDuplicateTokens: number;
     overlapTokens: number;
     totalEstimated: number;
   };
@@ -66,11 +79,13 @@ function jaccard(a: Set<string>, b: Set<string>): number {
 export interface AnalyzeOptions {
   overlapThreshold?: number;
   overlapMaxPairs?: number;
+  deep?: boolean;
 }
 
 export function analyze(skills: Skill[], opts: AnalyzeOptions = {}): Analysis {
   const overlapThreshold = opts.overlapThreshold ?? 0.5;
   const overlapMaxPairs = opts.overlapMaxPairs ?? 50;
+  const deep = opts.deep ?? false;
 
   const totalTokens = skills.reduce((n, s) => n + s.tokens, 0);
   const byAgent: Record<string, { count: number; tokens: number }> = {};
@@ -104,6 +119,29 @@ export function analyze(skills: Skill[], opts: AnalyzeOptions = {}): Analysis {
   const dupedFiles = new Set<string>();
   for (const g of duplicates) for (const c of g.copies) dupedFiles.add(c.file);
 
+  const byBodyHash = new Map<string, Skill[]>();
+  for (const s of skills) {
+    const arr = byBodyHash.get(s.bodyHash) ?? [];
+    arr.push(s);
+    byBodyHash.set(s.bodyHash, arr);
+  }
+  const nearDuplicates: NearDuplicateGroup[] = [];
+  for (const [bodyHash, variants] of byBodyHash) {
+    if (variants.length < 2) continue;
+    const contentHashes = new Set(variants.map((v) => v.contentHash));
+    if (contentHashes.size < 2) continue;
+    const tokens = variants[0]!.tokens;
+    nearDuplicates.push({
+      kind: 'near-duplicate',
+      name: variants[0]!.name,
+      bodyHash,
+      tokens,
+      variants,
+      wastedTokens: tokens * (variants.length - 1),
+    });
+  }
+  nearDuplicates.sort((a, b) => b.wastedTokens - a.wastedTokens);
+
   const byName = new Map<string, Skill[]>();
   for (const s of skills) {
     const arr = byName.get(s.name) ?? [];
@@ -115,6 +153,8 @@ export function analyze(skills: Skill[], opts: AnalyzeOptions = {}): Analysis {
     if (variants.length < 2) continue;
     const hashes = new Set(variants.map((v) => v.contentHash));
     if (hashes.size < 2) continue;
+    const bodyHashes = new Set(variants.map((v) => v.bodyHash));
+    if (bodyHashes.size < 2) continue;
     conflicts.push({
       kind: 'conflict',
       name,
@@ -130,23 +170,35 @@ export function analyze(skills: Skill[], opts: AnalyzeOptions = {}): Analysis {
     if (!prev || s.tokens > prev.tokens) byNameDedup.set(s.name, s);
   }
   const uniqueByName = [...byNameDedup.values()];
+  if (deep && uniqueByName.length > 500) {
+    process.stderr.write(`[claudoctor] --deep: tokenizing ${uniqueByName.length} skills, this may take a few seconds.\n`);
+  }
   const sigs = uniqueByName.map((s) => ({
     skill: s,
-    sig: tokenize(`${s.name} ${s.description}`),
+    descSig: tokenize(`${s.name} ${s.description}`),
+    bodySig: deep ? tokenize(s.body) : undefined,
   }));
   const overlaps: OverlapPair[] = [];
   for (let i = 0; i < sigs.length; i++) {
     for (let j = i + 1; j < sigs.length; j++) {
       const A = sigs[i]!;
       const B = sigs[j]!;
-      if (A.sig.size < 2 || B.sig.size < 2) continue;
-      const sim = jaccard(A.sig, B.sig);
-      if (sim >= overlapThreshold) {
+      if (!deep && (A.descSig.size < 2 || B.descSig.size < 2)) continue;
+      const descSimilarity = Number(jaccard(A.descSig, B.descSig).toFixed(3));
+      const bodySimilarity = deep && A.bodySig && B.bodySig
+        ? Number(jaccard(A.bodySig, B.bodySig).toFixed(3))
+        : undefined;
+      const similarity = bodySimilarity === undefined
+        ? descSimilarity
+        : Math.max(descSimilarity, bodySimilarity);
+      if (similarity >= overlapThreshold) {
         overlaps.push({
           kind: 'overlap',
           a: A.skill,
           b: B.skill,
-          similarity: Number(sim.toFixed(3)),
+          descSimilarity,
+          ...(bodySimilarity === undefined ? {} : { bodySimilarity }),
+          similarity,
           smallerTokens: Math.min(A.skill.tokens, B.skill.tokens),
         });
       }
@@ -157,6 +209,16 @@ export function analyze(skills: Skill[], opts: AnalyzeOptions = {}): Analysis {
 
   const duplicateTokens = duplicates.reduce((n, g) => n + g.wastedTokens, 0);
   const counted = new Set<string>(dupedFiles);
+  let nearDuplicateTokens = 0;
+  for (const g of nearDuplicates) {
+    let countedInGroup = 0;
+    for (const variant of g.variants) {
+      if (counted.has(variant.file)) continue;
+      counted.add(variant.file);
+      countedInGroup++;
+      if (countedInGroup > 1) nearDuplicateTokens += g.tokens;
+    }
+  }
   let overlapTokens = 0;
   for (const o of overlapsTrimmed) {
     const target = o.a.tokens <= o.b.tokens ? o.a : o.b;
@@ -171,13 +233,15 @@ export function analyze(skills: Skill[], opts: AnalyzeOptions = {}): Analysis {
     totalSkills: skills.length,
     byAgent,
     duplicates,
+    nearDuplicates,
     conflicts,
     overlaps: overlapsTrimmed,
     overlapsTotal: overlaps.length,
     savings: {
       duplicateTokens,
+      nearDuplicateTokens,
       overlapTokens,
-      totalEstimated: duplicateTokens + overlapTokens,
+      totalEstimated: duplicateTokens + nearDuplicateTokens + overlapTokens,
     },
   };
 }
