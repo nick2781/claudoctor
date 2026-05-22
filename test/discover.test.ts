@@ -37,4 +37,12 @@ describe('discover', () => {
     const foos = skills.filter((s) => s.name === 'foo');
     expect(foos[0]!.contentHash).toBe(foos[1]!.contentHash);
   });
+
+  it('hashes trimmed body content separately from raw content', async () => {
+    const skills = await discover(fx.sources);
+    const [foo, otherFoo] = skills.filter((s) => s.name === 'foo');
+    const bar = skills.find((s) => s.name === 'bar');
+    expect(foo!.bodyHash).toBe(otherFoo!.bodyHash);
+    expect(foo!.bodyHash).not.toBe(bar!.bodyHash);
+  });
 });

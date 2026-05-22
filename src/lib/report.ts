@@ -152,6 +152,7 @@ export function renderJson(a: Analysis): string {
     tokens: s.tokens,
     bytes: s.bytes,
     contentHash: s.contentHash,
+    bodyHash: s.bodyHash,
   });
   return JSON.stringify(
     {
@@ -166,6 +167,13 @@ export function renderJson(a: Analysis): string {
         wastedTokens: g.wastedTokens,
         copies: g.copies.map(slim),
       })),
+      nearDuplicates: a.nearDuplicates.map((g) => ({
+        name: g.name,
+        bodyHash: g.bodyHash,
+        tokens: g.tokens,
+        wastedTokens: g.wastedTokens,
+        variants: g.variants.map(slim),
+      })),
       conflicts: a.conflicts.map((c) => ({
         name: c.name,
         tokens: c.tokens,
@@ -174,6 +182,8 @@ export function renderJson(a: Analysis): string {
       overlapsTotal: a.overlapsTotal,
       overlaps: a.overlaps.map((o) => ({
         similarity: o.similarity,
+        descSimilarity: o.descSimilarity,
+        bodySimilarity: o.bodySimilarity,
         smallerTokens: o.smallerTokens,
         a: slim(o.a),
         b: slim(o.b),
