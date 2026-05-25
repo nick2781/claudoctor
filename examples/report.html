@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>claudoctor report</title>
+<style>
+:root{color-scheme:light dark;--bg:#f7f7f4;--text:#202124;--muted:#62665f;--panel:#ffffff;--line:#dadbd3;--error:#b42318;--warn:#a15c07;--info:#1769aa;--link:#0f5f8f}
+@media (prefers-color-scheme:dark){:root{--bg:#151716;--text:#ecefe8;--muted:#aeb4aa;--panel:#202320;--line:#3b403a;--error:#ff8a80;--warn:#ffbf69;--info:#83c5ff;--link:#8bd3ff}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px/1.5 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}a{color:var(--link);overflow-wrap:anywhere}.report-header{padding:28px 32px 20px;border-bottom:1px solid var(--line)}h1{margin:0 0 8px;font-size:30px;line-height:1.1}h2{margin:0 0 16px;font-size:18px}.meta{margin:0;color:var(--muted)}.summary{display:flex;gap:12px;flex-wrap:wrap;margin-top:20px}.summary div{min-width:120px;border:1px solid var(--line);background:var(--panel);border-radius:8px;padding:10px 12px}.summary strong{display:block;color:var(--muted);font-size:12px;text-transform:uppercase}.summary span{display:block;font-size:28px;font-weight:700}.report-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;padding:20px 32px 32px}.panel{min-width:0}.finding{border:1px solid var(--line);border-radius:8px;background:var(--panel);padding:14px;margin:0 0 12px}.finding-top{display:flex;gap:10px;align-items:flex-start}.finding h3{margin:0;font-size:15px;line-height:1.35}.finding p{margin:8px 0 0;color:var(--muted)}.severity{flex:none;border:1px solid currentColor;border-radius:999px;padding:1px 7px;font-size:11px;text-transform:uppercase}.finding-error .severity{color:var(--error)}.finding-warn .severity{color:var(--warn)}.finding-info .severity{color:var(--info)}.source-list{margin:10px 0 0;padding-left:18px;color:var(--muted)}.empty{color:var(--muted);border:1px dashed var(--line);border-radius:8px;padding:16px}.report-footer{padding:0 32px 28px;color:var(--muted)}@media (max-width:920px){.report-header,.report-grid,.report-footer{padding-left:18px;padding-right:18px}.report-grid{grid-template-columns:1fr}}
+</style>
+<script>document.documentElement.dataset.ready="true";</script>
+</head>
+<body>
+<header class="report-header">
+<h1>claudoctor report</h1>
+<p class="meta">Generated 2026-05-25T09:25:00.516Z · 6 skills · 212 skill tokens</p>
+<div class="summary">
+<div><strong>Errors</strong><span>1</span></div>
+<div><strong>Warnings</strong><span>2</span></div>
+<div><strong>Info</strong><span>1</span></div>
+</div>
+</header>
+<main class="report-grid">
+<section class="panel panel-claudemd">
+<h2>CLAUDE.md findings</h2>
+<p class="empty">No CLAUDE.md findings.</p>
+</section>
+<section class="panel panel-skills">
+<h2>Skills findings</h2>
+<article class="finding finding-warn"><div class="finding-top"><span class="severity">warning</span><h3>Name conflict: commit-helper</h3></div><p>2 variants share a name but differ in content (68 tokens).</p><ul class="source-list"><li><a href="file:///Users/nick/work/opensource/claudoctor/examples/fixture/.claude/skills/commit-a/SKILL.md">project: .claude/skills/commit-a/SKILL.md</a></li><li><a href="file:///Users/nick/work/opensource/claudoctor/examples/fixture/.claude/skills/commit-b/SKILL.md">project: .claude/skills/commit-b/SKILL.md</a></li></ul></article>
+<article class="finding finding-info"><div class="finding-top"><span class="severity">info</span><h3>Largest skill: deploy-checklist</h3></div><p>38 tokens in .claude/skills/deploy-a/SKILL.md</p><ul class="source-list"><li><a href="file:///Users/nick/work/opensource/claudoctor/examples/fixture/.claude/skills/deploy-a/SKILL.md">project: .claude/skills/deploy-a/SKILL.md</a></li></ul></article>
+</section>
+<section class="panel panel-duplicates">
+<h2>Duplicates</h2>
+<article class="finding finding-error"><div class="finding-top"><span class="severity">error</span><h3>Exact duplicate: deploy-checklist</h3></div><p>2 copies waste about 38 tokens.</p><ul class="source-list"><li><a href="file:///Users/nick/work/opensource/claudoctor/examples/fixture/.claude/skills/deploy-a/SKILL.md">project: .claude/skills/deploy-a/SKILL.md</a></li><li><a href="file:///Users/nick/work/opensource/claudoctor/examples/fixture/.claude/skills/deploy-b/SKILL.md">project: .claude/skills/deploy-b/SKILL.md</a></li></ul></article>
+<article class="finding finding-warn"><div class="finding-top"><span class="severity">warning</span><h3>Near duplicate: ship</h3></div><p>2 variants share the same body with different frontmatter; waste about 34 tokens.</p><ul class="source-list"><li><a href="file:///Users/nick/work/opensource/claudoctor/examples/fixture/.claude/skills/ship-a/SKILL.md">project: .claude/skills/ship-a/SKILL.md</a></li><li><a href="file:///Users/nick/work/opensource/claudoctor/examples/fixture/.claude/skills/ship-b/SKILL.md">project: .claude/skills/ship-b/SKILL.md</a></li></ul></article>
+</section>
+</main>
+<footer class="report-footer">
+Estimated savings: 72 tokens
+</footer>
+</body>
+</html>

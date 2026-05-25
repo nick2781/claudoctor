@@ -153,6 +153,25 @@ LLM 复核是可选的：设了 `ANTHROPIC_API_KEY` 就默认开；想关用 `--
 
 只要出现 `error` 级别 finding，退出码就是 `1`（方便接 CI）。
 
+## `claudoctor report`
+
+生成适合团队 review 的综合报告。它复用现有命令的 `DoctorReport` 与
+skills `Analysis` 数据结构，默认把 Markdown 输出到 stdout。
+
+```bash
+claudoctor report                            # Markdown 摘要输出到 stdout
+claudoctor report --format json              # 组合后的机器可读 JSON
+claudoctor report --format html              # 写入 ./report.html
+claudoctor report --format html --output examples/report.html
+```
+
+HTML 格式是单文件离线报告，内嵌 CSS / JS，通过 `prefers-color-scheme`
+适配暗黑模式，顶部有 severity 统计，并提供三栏 review：CLAUDE.md
+findings、skills findings、duplicates / near-duplicates。重复项会带
+`file://` 源文件链接，方便直接跳回对应 `SKILL.md`。
+生成后的 demo 在 [examples/report.html](examples/report.html)，预览截图在
+[docs/report-demo.png](docs/report-demo.png)。
+
 ## 路线图
 
 - **v0.1** —— `claudoctor skills`：静态分析、token 排序、重复 / 冲突 / overlap 检测 ✅
@@ -198,6 +217,7 @@ src/
     skills.ts             顶层 `skills` 命令
     skill.ts              `skill add/list/remove` 远端 pack 命令
     claudemd.ts           顶层 `claudemd` 命令
+    report.ts             综合报告命令
   lib/
     sources.ts            每个 agent 的已知 skill 位置
     discover.ts           文件发现 + 哈希（contentHash / bodyHash）
@@ -205,6 +225,7 @@ src/
     analyze.ts            重复 / 近似重复 / 冲突 / overlap 检测
     report.ts             text + json 渲染器（skills）
     skillpacks/           source 解析、registry 查找、安装 / 删除 / 列表
+    combined-report.ts    综合报告的 md / json / html 渲染器
     claudemd/
       types.ts            DoctorReport / Finding / Rule 契约
       parse.ts            CLAUDE.md → frontmatter + sections + rules

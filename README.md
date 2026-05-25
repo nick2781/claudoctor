@@ -164,6 +164,26 @@ falls back to rules-only and writes a one-line warning to stderr.
 
 Exit code is `1` when any `error`-severity finding is produced (handy in CI).
 
+## `claudoctor report`
+
+Generate a shareable combined report for team review. The command reuses the
+same `DoctorReport` and skills `Analysis` structures as the existing commands
+and defaults to Markdown on stdout.
+
+```bash
+claudoctor report                            # Markdown summary to stdout
+claudoctor report --format json              # combined machine-readable JSON
+claudoctor report --format html              # writes ./report.html
+claudoctor report --format html --output examples/report.html
+```
+
+The HTML format is a single offline file with inline CSS / JS, dark-mode
+styling via `prefers-color-scheme`, severity counts at the top, and three review
+columns: CLAUDE.md findings, skills findings, and duplicates / near-duplicates.
+Duplicate entries include `file://` links back to the source `SKILL.md` files.
+See the generated demo at [examples/report.html](examples/report.html) and the
+preview screenshot at [docs/report-demo.png](docs/report-demo.png).
+
 ## Roadmap
 
 - **v0.1** — `claudoctor skills`: static analysis, token sorting, duplicate / conflict / overlap detection ✅
@@ -209,6 +229,7 @@ src/
     skills.ts             top-level `skills` command
     skill.ts              `skill add/list/remove` remote pack commands
     claudemd.ts           top-level `claudemd` command
+    report.ts             combined report command
   lib/
     sources.ts            known skill locations per agent
     discover.ts           file discovery + hashing (contentHash / bodyHash)
@@ -216,6 +237,7 @@ src/
     analyze.ts            duplicate / near-duplicate / conflict / overlap detection
     report.ts             text + json renderers (skills)
     skillpacks/           source parsing, registry lookup, install/remove/list
+    combined-report.ts    md / json / html renderers for the combined report
     claudemd/
       types.ts            DoctorReport / Finding / Rule contract
       parse.ts            CLAUDE.md → frontmatter + sections + rules

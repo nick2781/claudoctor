@@ -5,6 +5,7 @@ import { Command } from 'commander';
 import { runSkills } from './commands/skills.js';
 import { runClaudemd } from './commands/claudemd.js';
 import { registerSkillCommand } from './commands/skill.js';
+import { runReport } from './commands/report.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const pkg = JSON.parse(readFileSync(resolve(here, '../package.json'), 'utf8')) as { version: string };
@@ -57,5 +58,20 @@ program
   });
 
 registerSkillCommand(program);
+
+program
+  .command('report')
+  .description('Generate a combined CLAUDE.md + skills report.')
+  .option('--format <format>', 'Output format: md, json, html', 'md')
+  .option('--output <file>', 'Write report to file instead of stdout')
+  .action(async (opts) => {
+    try {
+      await runReport(opts);
+    } catch (err) {
+      const msg = err instanceof Error ? err.stack ?? err.message : String(err);
+      process.stderr.write(`claudoctor: ${msg}\n`);
+      process.exit(1);
+    }
+  });
 
 program.parseAsync();
