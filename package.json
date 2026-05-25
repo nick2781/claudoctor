@@ -1,6 +1,6 @@
 {
   "name": "claudoctor",
-  "version": "0.3.0",
+  "version": "2026.5.25",
   "description": "Audit and clean up your Claude Code / Cursor skills and CLAUDE.md \u2014 find duplicates, conflicts, token bloat, and verbose / vague / counterproductive rules.",
   "keywords": [
     "claude",

@@ -3,6 +3,12 @@
 All notable changes to claudoctor will be documented here. Format loosely
 follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [2026.5.25] — CalVer migration & docs
+
+- Switched versioning from SemVer to CalVer (`YYYY.M.D`)
+- Added PLAN.md / MEMORY.md as living docs (must be updated each cycle)
+- Codified Versioning + Release process in README / AGENT.md / CLAUDE.md / CONTRIBUTING.md
+
 ## [0.3.0] - 2026-05-25
 
 ### Added

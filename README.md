@@ -9,6 +9,8 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Node](https://img.shields.io/badge/node-%3E%3D18-brightgreen.svg)](package.json)
 
+Versioned with **CalVer** (`YYYY.M.D`).
+
 **Status: early. Works on real data, API may still shift before 1.0.**
 
 ## Why
@@ -133,9 +135,26 @@ Exit code is `1` when any `error`-severity finding is produced (handy in CI).
 - **v0.1** — `claudoctor skills`: static analysis, token sorting, duplicate / conflict / overlap detection ✅
 - **v0.2** — `bodyHash` near-duplicate detection, `--deep` body-similarity overlap, project-level `.cursor/rules`, `--exclude` glob filter ✅
 - **v0.3** — `claudoctor claudemd`: static + LLM diagnosis of CLAUDE.md (token bloat, rule overload, vague / verbose / counterproductive rules, missing best-practice sections); markdown / text / JSON output ✅
-- **v0.4** — Auto-fix / auto-merge for duplicates and near-duplicates; HTML report; remote skill-pack repos
+- **Next CalVer release** — Auto-fix / auto-merge for duplicates and near-duplicates; HTML report; remote skill-pack repos
 
 See [CHANGELOG.md](CHANGELOG.md) for release notes.
+
+## Versioning
+
+claudoctor uses calendar versioning instead of SemVer.
+
+- Release versions use `YYYY.M.D`, with no zero padding. Example: `2026.5.25`.
+- If more than one release ships on the same day, append `.N`: `2026.5.25.1`, `2026.5.25.2`.
+- The next formal release after `0.3.0` is the first CalVer release.
+
+## Release process
+
+1. Update `CHANGELOG.md` with the release notes.
+2. Update `package.json` `version` to the CalVer value.
+3. Commit the release changes.
+4. Create a matching git tag, for example `2026.5.25`.
+5. Create the GitHub Release from that tag.
+6. Decide npm publishing separately; do not publish to npm as an automatic part of this process.
 
 ## Development
 
