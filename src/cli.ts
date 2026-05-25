@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { Command } from 'commander';
 import { runSkills } from './commands/skills.js';
 import { runClaudemd } from './commands/claudemd.js';
+import { runDedup } from './commands/dedup.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const pkg = JSON.parse(readFileSync(resolve(here, '../package.json'), 'utf8')) as { version: string };
@@ -20,6 +21,8 @@ program
   .description('Audit local skills: duplicates, conflicts, overlap, token usage.')
   .option('--json', 'Output as JSON for piping')
   .option('--deep', 'Use local claude CLI for semantic conflict detection (v0.2)')
+  .option('--fix', 'Plan and apply duplicate cleanup fixes')
+  .option('--yes', 'Apply exact duplicate fixes without prompting (with --fix)')
   .option('--source <list>', 'Comma list of agents: claude,codex,cursor,hermes,project')
   .option('--exclude <list>', 'Exclude file globs (e.g. **/openclaw-imports/**,**/node_modules/**)')
   .option('--top <n>', 'Top N skills in token rank', '20')
@@ -27,6 +30,26 @@ program
   .action(async (opts) => {
     try {
       await runSkills(opts);
+    } catch (err) {
+      const msg = err instanceof Error ? err.stack ?? err.message : String(err);
+      process.stderr.write(`claudoctor: ${msg}\n`);
+      process.exit(1);
+    }
+  });
+
+program
+  .command('dedup')
+  .description('Auto-fix exact duplicates and interactively merge near-duplicates.')
+  .option('--json', 'Output the dedup plan as JSON')
+  .option('--yes', 'Apply exact duplicate fixes without prompting')
+  .option('--source <list>', 'Comma list of agents: claude,codex,cursor,hermes,project')
+  .option('--exclude <list>', 'Exclude file globs (e.g. **/openclaw-imports/**,**/node_modules/**)')
+  .option('--threshold <n>', 'Near-duplicate similarity threshold 0..1', '0.9')
+  .option('--claudemd <list>', 'Comma list of CLAUDE.md files to deduplicate')
+  .option('--skip-claudemd', 'Skip CLAUDE.md paragraph deduplication')
+  .action(async (opts) => {
+    try {
+      await runDedup(opts);
     } catch (err) {
       const msg = err instanceof Error ? err.stack ?? err.message : String(err);
       process.stderr.write(`claudoctor: ${msg}\n`);

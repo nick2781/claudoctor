@@ -36,7 +36,8 @@ the same changelog -> package version -> commit -> tag -> GitHub Release flow.
 
 ### Sub-issues
 
-- Duplicates and near-duplicates auto-fix / auto-merge.
+- Duplicates and near-duplicates auto-fix / auto-merge. Status: implemented in
+  the N-15 branch; awaiting review / merge with the sibling feature branches.
 - HTML report output.
 - Remote skill-pack repository support.
 

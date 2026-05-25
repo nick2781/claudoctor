@@ -40,6 +40,7 @@ claudoctor skills --json                     # machine-readable, pipe-friendly
 claudoctor skills --source claude,codex      # restrict by agent
 claudoctor skills --exclude '**/openclaw-imports/**'
 claudoctor skills --deep                     # also tokenize bodies for overlap (O(N²), slower)
+claudoctor skills --fix                      # dry-run duplicate cleanup, then prompt
 claudoctor skills --top 30 --threshold 0.6   # tweak rank size + overlap sensitivity
 ```
 
@@ -94,6 +95,30 @@ Estimated savings: ~499.0k tokens
 claudoctor skills --json | jq '.savings'
 claudoctor skills --json | jq '.duplicates[] | {name, copies, wastedTokens}'
 ```
+
+## `claudoctor dedup`
+
+Auto-fix duplicate skill files and duplicate CLAUDE.md paragraphs, then review
+near-duplicates interactively.
+
+```bash
+claudoctor dedup                         # dry-run diff, prompt before exact fixes
+claudoctor dedup --yes                   # apply exact duplicate fixes without prompting
+claudoctor dedup --threshold 0.85        # lower near-duplicate merge sensitivity
+claudoctor dedup --claudemd ./CLAUDE.md  # choose CLAUDE.md files explicitly
+claudoctor dedup --skip-claudemd         # only deduplicate skill files
+```
+
+Exact duplicates are safe mechanical fixes: `claudoctor` keeps the copy from
+the most common source location, then the shallowest path, and deletes the
+other identical skill files. Duplicate CLAUDE.md paragraphs keep the shallowest
+file / earliest paragraph and remove the later copies. Before anything is
+changed, the command prints a dry-run diff; use `--yes` or answer `y` to apply.
+
+Near-duplicates are not auto-merged blindly. In an interactive terminal,
+`claudoctor dedup` shows an A/B diff and lets you keep both, merge into A,
+merge into B, or skip. In non-interactive runs, near-duplicates are reported
+and skipped.
 
 ## `claudoctor claudemd`
 
@@ -173,12 +198,14 @@ src/
   cli.ts                  commander wiring
   commands/
     skills.ts             top-level `skills` command
+    dedup.ts              duplicate cleanup command
     claudemd.ts           top-level `claudemd` command
   lib/
     sources.ts            known skill locations per agent
     discover.ts           file discovery + hashing (contentHash / bodyHash)
     tokens.ts             @anthropic-ai/tokenizer wrapper
     analyze.ts            duplicate / near-duplicate / conflict / overlap detection
+    dedup.ts              exact fix planner + near-duplicate merge helpers
     report.ts             text + json renderers (skills)
     claudemd/
       types.ts            DoctorReport / Finding / Rule contract

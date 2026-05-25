@@ -8,6 +8,9 @@
 - 2026-05-25: Release flow is `CHANGELOG.md` first, then `package.json`
   `version`, commit, matching git tag, and GitHub Release. npm publishing is a
   separate decision, not an automatic release step.
+- 2026-05-25: Duplicates auto-fix shipped as `claudoctor dedup` plus
+  `claudoctor skills --fix`. Exact duplicates require a dry-run confirmation;
+  near-duplicates stay interactive and are skipped in non-interactive runs.
 
 ## Lessons learned
 

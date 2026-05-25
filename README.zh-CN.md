@@ -40,6 +40,7 @@ claudoctor skills --json                     # 机器可读，便于管道处理
 claudoctor skills --source claude,codex      # 按 agent 限定来源
 claudoctor skills --exclude '**/openclaw-imports/**'
 claudoctor skills --deep                     # 同时分词 body 计算 overlap（O(N²)，更慢）
+claudoctor skills --fix                      # dry-run 重复清理，然后确认
 claudoctor skills --top 30 --threshold 0.6   # 调整排行数量 + overlap 敏感度
 ```
 
@@ -94,6 +95,27 @@ Estimated savings: ~499.0k tokens
 claudoctor skills --json | jq '.savings'
 claudoctor skills --json | jq '.duplicates[] | {name, copies, wastedTokens}'
 ```
+
+## `claudoctor dedup`
+
+自动修复重复 skill 文件和重复 CLAUDE.md 段落，然后交互式处理 near-duplicate。
+
+```bash
+claudoctor dedup                         # 打印 dry-run diff，确认后再改
+claudoctor dedup --yes                   # 非交互应用 exact duplicate 修复
+claudoctor dedup --threshold 0.85        # 降低 near-duplicate merge 阈值
+claudoctor dedup --claudemd ./CLAUDE.md  # 显式指定 CLAUDE.md 文件
+claudoctor dedup --skip-claudemd         # 只处理 skill 文件
+```
+
+exact duplicate 是机械安全修复：优先保留出现最多的 source location，其次保留
+路径最浅的一份，并删除其他完全相同的 skill 文件。CLAUDE.md 重复段落保留路径
+最浅 / 出现最早的一段，移除后续副本。真正写入前会先打印 dry-run diff；传
+`--yes` 或交互输入 `y` 才会应用。
+
+near-duplicate 不会盲目自动合并。在交互式终端中，`claudoctor dedup` 会展示
+A/B diff，并允许 keep both、merge into A、merge into B 或 skip。非交互场景
+只报告并跳过 near-duplicate。
 
 ## `claudoctor claudemd`
 
@@ -168,12 +190,14 @@ src/
   cli.ts                  commander 装配
   commands/
     skills.ts             顶层 `skills` 命令
+    dedup.ts              重复清理命令
     claudemd.ts           顶层 `claudemd` 命令
   lib/
     sources.ts            每个 agent 的已知 skill 位置
     discover.ts           文件发现 + 哈希（contentHash / bodyHash）
     tokens.ts             @anthropic-ai/tokenizer 封装
     analyze.ts            重复 / 近似重复 / 冲突 / overlap 检测
+    dedup.ts              exact fix 计划 + near-duplicate merge 辅助函数
     report.ts             text + json 渲染器（skills）
     claudemd/
       types.ts            DoctorReport / Finding / Rule 契约

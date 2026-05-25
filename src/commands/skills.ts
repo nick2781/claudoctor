@@ -2,17 +2,25 @@ import { defaultSources, filterSources } from '../lib/sources.js';
 import { discover } from '../lib/discover.js';
 import { analyze } from '../lib/analyze.js';
 import { renderJson, renderText } from '../lib/report.js';
+import { runDedup } from './dedup.js';
 
 export interface SkillsOptions {
   json?: boolean;
   deep?: boolean;
   source?: string;
   exclude?: string;
+  fix?: boolean;
+  yes?: boolean;
   top?: string;
   threshold?: string;
 }
 
 export async function runSkills(opts: SkillsOptions): Promise<void> {
+  if (opts.fix) {
+    await runDedup(opts);
+    return;
+  }
+
   const wanted = opts.source
     ? opts.source.split(',').map((s) => s.trim()).filter(Boolean)
     : undefined;
