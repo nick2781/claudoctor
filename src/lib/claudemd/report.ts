@@ -7,32 +7,20 @@ const SEVERITY_ORDER: Record<Severity, number> = {
   info: 2,
 };
 
-const MD_SEVERITY: Record<Severity, string> = {
-  error: '🔴',
-  warn: '🟡',
-  info: '🔵',
-};
-
 const TEXT_SEVERITY: Record<Severity, string> = {
-  error: 'ERR',
+  error: 'ERROR',
   warn: 'WARN',
   info: 'INFO',
 };
 
-function formatTokens(tokens: number): string {
-  if (tokens >= 1000) return `${(tokens / 1000).toFixed(1)}k`;
-  return String(tokens);
-}
+const MD_GROUP_LABELS: Record<Severity, string> = {
+  error: 'Errors',
+  warn: 'Warnings',
+  info: 'Info',
+};
 
 function sortedFindings(findings: Finding[]): Finding[] {
   return [...findings].sort((a, b) => SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity]);
-}
-
-function quoteMarkdown(text: string): string {
-  return text
-    .split('\n')
-    .map((line) => `> ${line}`)
-    .join('\n');
 }
 
 function colorSeverity(severity: Severity, text: string): string {
@@ -41,48 +29,45 @@ function colorSeverity(severity: Severity, text: string): string {
   return chalk.cyan(text);
 }
 
+function findingsForSeverity(findings: Finding[], severity: Severity): Finding[] {
+  return findings.filter((finding) => finding.severity === severity);
+}
+
+function markdownCodeSpan(text: string): string {
+  const longestBacktick = Math.max(0, ...Array.from(text.matchAll(/`+/g), (match) => match[0].length));
+  const delimiter = '`'.repeat(longestBacktick + 1);
+  return `${delimiter}${text}${delimiter}`;
+}
+
 export function renderMd(report: DoctorReport): string {
   const lines = [
-    '# CLAUDE.md Doctor Report',
+    '# CLAUDE.md doctor report',
     '',
-    `**File**: \`${report.file}\``,
-    `**Tokens**: ${formatTokens(report.tokens)}  •  **Rules**: ${report.ruleCount}  •  **Lines**: ${report.lineCount}`,
-    `**LLM cross-check**: ${report.meta.llmUsed ? 'enabled' : 'disabled'}`,
-    `**Ruleset**: ${report.meta.rulesetVersion}`,
+    `**File:** ${report.file} · ${report.tokens} tokens · ${report.ruleCount} rules · ${report.findings.length} findings`,
     '',
-    '## Summary',
-    `- 🔴 Errors: ${report.summary.errors}`,
-    `- 🟡 Warnings: ${report.summary.warnings}`,
-    `- 🔵 Info: ${report.summary.infos}`,
+    `**Errors:** ${report.summary.errors} · **Warnings:** ${report.summary.warnings} · **Info:** ${report.summary.infos}`,
     '',
     '## Findings',
-    '',
   ];
 
   const findings = sortedFindings(report.findings);
   if (findings.length === 0) {
-    lines.push('_No issues found. Your CLAUDE.md looks healthy._');
-    return lines.join('\n');
+    lines.push('', 'No issues found.');
+    return lines.join('\n').trimEnd();
   }
 
-  for (const finding of findings) {
-    lines.push(`### ${MD_SEVERITY[finding.severity]} ${finding.message} (${finding.id})`);
-    lines.push(
-      `**Category**: ${finding.category} · **Source**: ${finding.source}${
-        finding.line === undefined ? '' : ` · **Line**: ${finding.line}`
-      }`,
-    );
+  for (const severity of ['error', 'warn', 'info'] as const) {
+    const group = findingsForSeverity(findings, severity);
+    if (group.length === 0) continue;
     lines.push('');
-    if (finding.ruleText) {
-      lines.push(quoteMarkdown(finding.ruleText));
-      lines.push('');
+    lines.push(`## ${MD_GROUP_LABELS[severity]}`);
+    for (const finding of group) {
+      const lineSuffix = finding.line === undefined ? '' : ` _(line ${finding.line})_`;
+      lines.push(`- **[${finding.category}]** ${finding.message}${lineSuffix}`);
+      if (finding.ruleText) lines.push(`  - rule: ${markdownCodeSpan(`"${finding.ruleText}"`)}`);
+      if (finding.suggestion) lines.push(`  - fix: ${finding.suggestion}`);
+      lines.push(`  - source: ${finding.source}`);
     }
-    if (finding.suggestion) {
-      lines.push(finding.suggestion);
-      lines.push('');
-    }
-    lines.push('---');
-    lines.push('');
   }
 
   return lines.join('\n').trimEnd();
@@ -90,27 +75,29 @@ export function renderMd(report: DoctorReport): string {
 
 export function renderText(report: DoctorReport): string {
   const lines = [
-    `CLAUDE.md doctor — ${report.file}`,
-    `${formatTokens(report.tokens)} tokens · ${report.ruleCount} rules · ${report.lineCount} lines · llm=${
-      report.meta.llmUsed ? 'on' : 'off'
-    } · ruleset ${report.meta.rulesetVersion}`,
+    chalk.bold(`claudoctor — ${report.file}`),
     '',
   ];
 
-  for (const finding of sortedFindings(report.findings)) {
-    const label = colorSeverity(finding.severity, TEXT_SEVERITY[finding.severity]);
-    const lineSuffix = finding.line === undefined ? '' : ` (line ${finding.line})`;
-    lines.push(`${label} ${finding.id}  ${finding.message}${lineSuffix}`);
-    if (finding.ruleText) lines.push(`                         > "${finding.ruleText}"`);
-    if (finding.suggestion) lines.push(`                         suggest: ${finding.suggestion}`);
+  const findings = sortedFindings(report.findings);
+  if (findings.length === 0) {
+    lines.push(chalk.green('No issues found.'));
+  } else {
+    for (const finding of findings) {
+      const label = colorSeverity(finding.severity, TEXT_SEVERITY[finding.severity]);
+      const lineSuffix = finding.line === undefined ? '' : ` (line ${finding.line})`;
+      lines.push(`${label} [${finding.category}] ${finding.message}${lineSuffix}`);
+    }
   }
 
-  if (report.findings.length > 0) lines.push('');
+  lines.push('');
   lines.push(
-    `${report.summary.errors} errors · ${report.summary.warnings} warnings · ${report.summary.infos} infos`,
+    `${report.summary.errors} errors, ${report.summary.warnings} warnings, ${report.summary.infos} infos · ruleset ${report.meta.rulesetVersion} · llm: ${
+      report.meta.llmUsed ? 'yes' : 'no'
+    }`,
   );
 
-  return lines.join('\n');
+  return lines.join('\n').trimEnd();
 }
 
 export function renderJson(report: DoctorReport): string {
