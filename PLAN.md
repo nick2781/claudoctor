@@ -38,7 +38,8 @@ the same changelog -> package version -> commit -> tag -> GitHub Release flow.
 
 - Duplicates and near-duplicates auto-fix / auto-merge.
 - HTML report output.
-- Remote skill-pack repository support.
+- Remote skill-pack repository support. Implemented via
+  `claudoctor skill add/list/remove` plus a static registry index.
 
 ### Exit criteria
 

@@ -27,6 +27,7 @@
   },
   "files": [
     "dist",
+    "registry",
     "README.md",
     "LICENSE"
   ],

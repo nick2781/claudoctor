@@ -3,6 +3,16 @@
 All notable changes to claudoctor will be documented here. Format loosely
 follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased]
+
+### Added
+- `claudoctor skill add/list/remove` for installing remote skill packs into
+  `~/.claudoctor/skills/<pack-name>/`.
+- Static registry support via `registry/index.json`, with overrides through
+  `CLAUDOCTOR_REGISTRY_URL` or `~/.claudoctor/config.json`.
+- Source parsing for `git+...`, `gh:owner/repo[/path][#ref]`, and registry
+  pack names.
+
 ## [2026.5.25] — CalVer migration & docs
 
 - Switched versioning from SemVer to CalVer (`YYYY.M.D`)

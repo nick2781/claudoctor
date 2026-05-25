@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { Command } from 'commander';
 import { runSkills } from './commands/skills.js';
 import { runClaudemd } from './commands/claudemd.js';
+import { registerSkillCommand } from './commands/skill.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const pkg = JSON.parse(readFileSync(resolve(here, '../package.json'), 'utf8')) as { version: string };
@@ -54,5 +55,7 @@ program
       process.exit(1);
     }
   });
+
+registerSkillCommand(program);
 
 program.parseAsync();
