@@ -8,6 +8,9 @@
 - 2026-05-25: Release flow is `CHANGELOG.md` first, then `package.json`
   `version`, commit, matching git tag, and GitHub Release. npm publishing is a
   separate decision, not an automatic release step.
+- 2026-05-25: Remote skill packs install under `~/.claudoctor/skills/<pack-name>/`.
+  The first registry is a static JSON index, overridable with
+  `CLAUDOCTOR_REGISTRY_URL` or `~/.claudoctor/config.json`.
 
 ## Lessons learned
 

@@ -17,7 +17,9 @@ Versioned with **CalVer** (`YYYY.M.D`).
 
 You installed `obra/superpowers`, a few trending skill packs, copied things into `~/.claude/skills/` once, then again into `~/.codex/skills/`. Your Claude Code / Codex system prompt is now several hundred KB of overlapping skills, accidental duplicates, and silent name conflicts. You have no idea what's actually loaded or what costs you tokens on every turn.
 
-`claudoctor` scans the known skill locations on disk and tells you. Static analysis only — never reads code, never phones home.
+The audit commands scan the known skill locations on disk and tell you. Static
+analysis only — they never read code or phone home. The `skill add` command is
+the explicit networked path for installing remote packs.
 
 ## Install
 
@@ -41,6 +43,38 @@ claudoctor skills --source claude,codex      # restrict by agent
 claudoctor skills --exclude '**/openclaw-imports/**'
 claudoctor skills --deep                     # also tokenize bodies for overlap (O(N²), slower)
 claudoctor skills --top 30 --threshold 0.6   # tweak rank size + overlap sensitivity
+```
+
+## `claudoctor skill`
+
+Install community skill packs into `~/.claudoctor/skills/<pack-name>/`.
+
+```bash
+claudoctor skill add git+https://github.com/acme/agent-skills.git
+claudoctor skill add gh:acme/agent-skills/codex#main
+claudoctor skill add starter-skills --yes
+claudoctor skill list
+claudoctor skill remove starter-skills
+```
+
+Supported sources:
+
+- `git+https://...` — clone a git repository directly.
+- `gh:owner/repo[/path][#ref]` — GitHub shorthand, with optional subdirectory and ref.
+- `<pack-name>` — look up a pack in the registry, then clone its configured source.
+
+Installs show the source URL and ask for confirmation before cloning. Pass
+`--yes` for scripts and CI. If the target directory already exists, the command
+fails unless `--force` is set.
+
+The default registry is the static [`registry/index.json`](registry/index.json)
+shipped with the package. Override it with `CLAUDOCTOR_REGISTRY_URL` or
+`~/.claudoctor/config.json`:
+
+```json
+{
+  "registryUrl": "https://example.com/claudoctor-registry.json"
+}
 ```
 
 ### What it reports
@@ -135,7 +169,7 @@ Exit code is `1` when any `error`-severity finding is produced (handy in CI).
 - **v0.1** — `claudoctor skills`: static analysis, token sorting, duplicate / conflict / overlap detection ✅
 - **v0.2** — `bodyHash` near-duplicate detection, `--deep` body-similarity overlap, project-level `.cursor/rules`, `--exclude` glob filter ✅
 - **v0.3** — `claudoctor claudemd`: static + LLM diagnosis of CLAUDE.md (token bloat, rule overload, vague / verbose / counterproductive rules, missing best-practice sections); markdown / text / JSON output ✅
-- **Next CalVer release** — Auto-fix / auto-merge for duplicates and near-duplicates; HTML report; remote skill-pack repos
+- **Next CalVer release** — Auto-fix / auto-merge for duplicates and near-duplicates; HTML report; remote skill-pack repos ✅
 
 See [CHANGELOG.md](CHANGELOG.md) for release notes.
 
@@ -173,6 +207,7 @@ src/
   cli.ts                  commander wiring
   commands/
     skills.ts             top-level `skills` command
+    skill.ts              `skill add/list/remove` remote pack commands
     claudemd.ts           top-level `claudemd` command
   lib/
     sources.ts            known skill locations per agent
@@ -180,6 +215,7 @@ src/
     tokens.ts             @anthropic-ai/tokenizer wrapper
     analyze.ts            duplicate / near-duplicate / conflict / overlap detection
     report.ts             text + json renderers (skills)
+    skillpacks/           source parsing, registry lookup, install/remove/list
     claudemd/
       types.ts            DoctorReport / Finding / Rule contract
       parse.ts            CLAUDE.md → frontmatter + sections + rules

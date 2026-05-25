@@ -28,6 +28,24 @@ Requires Node.js ≥ 18 and pnpm (or npm — `package-lock.json` is not checked 
 
 Keep commits focused; squash noise locally before pushing.
 
+## Registry contributions
+
+Community skill packs are listed in `registry/index.json`. Add one entry per
+pack:
+
+```json
+{
+  "name": "starter-skills",
+  "source": "gh:nick2781/claudoctor-starter-skills",
+  "description": "Starter community skill pack for claudoctor users."
+}
+```
+
+Use a stable, lowercase pack name with letters, numbers, dots, underscores, or
+hyphens. `source` must be a `git+https://...` URL or `gh:owner/repo[/path][#ref]`
+shorthand that `claudoctor skill add <pack-name>` can clone. Keep descriptions
+short and user-facing.
+
 ## Versioning
 
 claudoctor uses the same CalVer rules documented in `README.md`: release

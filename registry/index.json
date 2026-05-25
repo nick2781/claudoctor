@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "packs": [
+    {
+      "name": "starter-skills",
+      "source": "gh:nick2781/claudoctor-starter-skills",
+      "description": "Starter community skill pack for claudoctor users."
+    }
+  ]
+}

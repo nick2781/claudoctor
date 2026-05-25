@@ -17,7 +17,7 @@ Versioned with **CalVer** (`YYYY.M.D`)。
 
 你装过 `obra/superpowers`，又抄过几个流行 skill 包，先往 `~/.claude/skills/` 丢了一份，又往 `~/.codex/skills/` 丢了一份。你的 Claude Code / Codex 系统提示已经膨胀到几百 KB —— 充斥着互相重叠的 skill、意外的重复，以及静默的命名冲突。你不知道实际加载了什么，更不知道每一轮对话被它们吃掉了多少 token。
 
-`claudoctor` 扫描磁盘上已知的 skill 位置并告诉你结果。只做静态分析 —— 不执行代码、不联网。
+审计命令会扫描磁盘上已知的 skill 位置并告诉你结果。只做静态分析 —— 不执行代码、不联网。`skill add` 是显式的联网安装入口，用来拉取远端 pack。
 
 ## 安装
 
@@ -41,6 +41,34 @@ claudoctor skills --source claude,codex      # 按 agent 限定来源
 claudoctor skills --exclude '**/openclaw-imports/**'
 claudoctor skills --deep                     # 同时分词 body 计算 overlap（O(N²)，更慢）
 claudoctor skills --top 30 --threshold 0.6   # 调整排行数量 + overlap 敏感度
+```
+
+## `claudoctor skill`
+
+将社区 skill pack 安装到 `~/.claudoctor/skills/<pack-name>/`。
+
+```bash
+claudoctor skill add git+https://github.com/acme/agent-skills.git
+claudoctor skill add gh:acme/agent-skills/codex#main
+claudoctor skill add starter-skills --yes
+claudoctor skill list
+claudoctor skill remove starter-skills
+```
+
+支持的 source 形态：
+
+- `git+https://...` —— 直接 clone git 仓库。
+- `gh:owner/repo[/path][#ref]` —— GitHub 简写，可带子目录和 ref。
+- `<pack-name>` —— 从 registry 查到 source 后再 clone。
+
+安装前会显示 source URL 并要求确认；脚本和 CI 可传 `--yes`。目标目录已存在时会报错，除非传 `--force` 覆盖。
+
+默认 registry 是仓库内的静态 [`registry/index.json`](registry/index.json)。可通过 `CLAUDOCTOR_REGISTRY_URL` 或 `~/.claudoctor/config.json` 覆盖：
+
+```json
+{
+  "registryUrl": "https://example.com/claudoctor-registry.json"
+}
 ```
 
 ### 它报告什么
@@ -130,7 +158,7 @@ LLM 复核是可选的：设了 `ANTHROPIC_API_KEY` 就默认开；想关用 `--
 - **v0.1** —— `claudoctor skills`：静态分析、token 排序、重复 / 冲突 / overlap 检测 ✅
 - **v0.2** —— `bodyHash` 近似重复检测、`--deep` body 相似度 overlap、项目级 `.cursor/rules`、`--exclude` glob 过滤 ✅
 - **v0.3** —— `claudoctor claudemd`：静态 + LLM 双重诊断 CLAUDE.md（token 膨胀、规则过载、含糊 / 啰嗦 / 反效果、缺失最佳实践小节）；md / text / JSON 输出 ✅
-- **下一次 CalVer release** —— 重复 / 近似重复的自动 fix / merge；HTML 报告；远端 skill-pack 仓库
+- **下一次 CalVer release** —— 重复 / 近似重复的自动 fix / merge；HTML 报告；远端 skill-pack 仓库 ✅
 
 发布说明见 [CHANGELOG.md](CHANGELOG.md)。
 
@@ -168,6 +196,7 @@ src/
   cli.ts                  commander 装配
   commands/
     skills.ts             顶层 `skills` 命令
+    skill.ts              `skill add/list/remove` 远端 pack 命令
     claudemd.ts           顶层 `claudemd` 命令
   lib/
     sources.ts            每个 agent 的已知 skill 位置
@@ -175,6 +204,7 @@ src/
     tokens.ts             @anthropic-ai/tokenizer 封装
     analyze.ts            重复 / 近似重复 / 冲突 / overlap 检测
     report.ts             text + json 渲染器（skills）
+    skillpacks/           source 解析、registry 查找、安装 / 删除 / 列表
     claudemd/
       types.ts            DoctorReport / Finding / Rule 契约
       parse.ts            CLAUDE.md → frontmatter + sections + rules
