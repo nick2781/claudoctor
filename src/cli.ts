@@ -1,12 +1,19 @@
+import { readFileSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { Command } from 'commander';
 import { runSkills } from './commands/skills.js';
+import { runClaudemd } from './commands/claudemd.js';
+
+const here = dirname(fileURLToPath(import.meta.url));
+const pkg = JSON.parse(readFileSync(resolve(here, '../package.json'), 'utf8')) as { version: string };
 
 const program = new Command();
 
 program
   .name('claudoctor')
-  .description('Audit and clean up your Claude Code / Cursor skills.')
-  .version('0.1.0');
+  .description('Audit and clean up your Claude Code / Cursor skills and CLAUDE.md.')
+  .version(pkg.version);
 
 program
   .command('skills')
@@ -20,6 +27,27 @@ program
   .action(async (opts) => {
     try {
       await runSkills(opts);
+    } catch (err) {
+      const msg = err instanceof Error ? err.stack ?? err.message : String(err);
+      process.stderr.write(`claudoctor: ${msg}\n`);
+      process.exit(1);
+    }
+  });
+
+program
+  .command('claudemd')
+  .description('Audit a CLAUDE.md: best-practice gaps, verbose / vague / counterproductive rules.')
+  .argument('[path]', 'Path to CLAUDE.md (defaults to ./CLAUDE.md then ~/.claude/CLAUDE.md)')
+  .option('--json', 'Output as JSON for piping')
+  .option('--md', 'Output as Markdown (default)')
+  .option('--text', 'Output as colored terminal text')
+  .option('--llm', 'Cross-check with Claude API (requires ANTHROPIC_API_KEY)')
+  .option('--no-llm', 'Skip the LLM cross-check even if ANTHROPIC_API_KEY is set')
+  .option('--model <id>', 'Anthropic model id for --llm', 'claude-haiku-4-5-20251001')
+  .option('--output <file>', 'Write report to file instead of stdout')
+  .action(async (path, opts) => {
+    try {
+      await runClaudemd(path, opts);
     } catch (err) {
       const msg = err instanceof Error ? err.stack ?? err.message : String(err);
       process.stderr.write(`claudoctor: ${msg}\n`);
