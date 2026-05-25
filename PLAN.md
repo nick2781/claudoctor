@@ -1,33 +1,6 @@
 # Plan
 
-## Current milestone: CalVer migration and documentation rules
-
-### Goal
-
-Move claudoctor from SemVer to CalVer and codify the release and living-doc
-process across the repository's durable documentation.
-
-Release flow for this milestone: update `CHANGELOG.md`, update `package.json`
-`version`, commit, tag `2026.5.25`, create the GitHub Release, and leave npm
-publishing for a separate decision.
-
-### Sub-issues
-
-- Update README.md and README.zh-CN.md with CalVer and release process docs.
-- Add AGENT.md and CLAUDE.md with shared agent collaboration rules.
-- Update CONTRIBUTING.md with maintainer-facing versioning and release steps.
-- Create PLAN.md and MEMORY.md as required living docs.
-- Change package metadata and changelog to `2026.5.25`.
-
-### Exit criteria
-
-- README.md, README.zh-CN.md, AGENT.md, CLAUDE.md, CONTRIBUTING.md, PLAN.md,
-  and MEMORY.md all document CalVer or the release/living-doc process.
-- `package.json` and `CHANGELOG.md` are migrated to `2026.5.25`.
-- Tests, lint, and build pass before merge.
-- PR is merged, tag `2026.5.25` is pushed, and a GitHub Release is created.
-
-## Next milestone: first CalVer feature release
+## Current milestone: first CalVer feature release
 
 ### Goal
 
@@ -37,7 +10,9 @@ the same changelog -> package version -> commit -> tag -> GitHub Release flow.
 ### Sub-issues
 
 - Duplicates and near-duplicates auto-fix / auto-merge.
-- HTML report output.
+- HTML report output: `claudoctor report --format html` now generates a
+  single-file offline report with CLAUDE.md findings, skills findings, and
+  duplicate / near-duplicate columns.
 - Remote skill-pack repository support. Implemented via
   `claudoctor skill add/list/remove` plus a static registry index.
 
@@ -47,3 +22,23 @@ the same changelog -> package version -> commit -> tag -> GitHub Release flow.
 - README usage examples cover the new user-facing commands or flags.
 - CHANGELOG.md summarizes the feature release under its CalVer version.
 - PLAN.md and MEMORY.md are updated at the end of the milestone.
+- PRs for all three sub-issues are merged before the release tag is cut.
+
+## Next milestone: CalVer feature release packaging
+
+### Goal
+
+After the three feature sub-issues merge, package them as the next CalVer
+release.
+
+### Sub-issues
+
+- Update CHANGELOG.md for the feature release.
+- Update `package.json` to the release date version.
+- Tag the release and create the GitHub Release.
+
+### Exit criteria
+
+- Feature PRs are merged.
+- `pnpm lint`, `pnpm test`, and `pnpm build` pass on main.
+- The CalVer tag and GitHub Release are published.
