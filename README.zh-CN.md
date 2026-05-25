@@ -9,6 +9,8 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Node](https://img.shields.io/badge/node-%3E%3D18-brightgreen.svg)](package.json)
 
+Versioned with **CalVer** (`YYYY.M.D`)。
+
 **状态：早期。可在真实数据上跑通，1.0 之前 API 仍可能调整。**
 
 ## 为什么需要它
@@ -128,9 +130,26 @@ LLM 复核是可选的：设了 `ANTHROPIC_API_KEY` 就默认开；想关用 `--
 - **v0.1** —— `claudoctor skills`：静态分析、token 排序、重复 / 冲突 / overlap 检测 ✅
 - **v0.2** —— `bodyHash` 近似重复检测、`--deep` body 相似度 overlap、项目级 `.cursor/rules`、`--exclude` glob 过滤 ✅
 - **v0.3** —— `claudoctor claudemd`：静态 + LLM 双重诊断 CLAUDE.md（token 膨胀、规则过载、含糊 / 啰嗦 / 反效果、缺失最佳实践小节）；md / text / JSON 输出 ✅
-- **v0.4** —— 重复 / 近似重复的自动 fix / merge；HTML 报告；远端 skill-pack 仓库
+- **下一次 CalVer release** —— 重复 / 近似重复的自动 fix / merge；HTML 报告；远端 skill-pack 仓库
 
 发布说明见 [CHANGELOG.md](CHANGELOG.md)。
+
+## 版本号规则
+
+claudoctor 使用 CalVer（日期版本号），不再使用 SemVer。
+
+- 正式版本使用 `YYYY.M.D`，不补零。例如：`2026.5.25`。
+- 同一天需要二次或多次发版时追加 `.N`：`2026.5.25.1`、`2026.5.25.2`。
+- `0.3.0` 之后的下一次正式发版就是首个 CalVer release。
+
+## 发布流程
+
+1. 更新 `CHANGELOG.md` 的发布说明。
+2. 将 `package.json` 的 `version` 改为对应 CalVer。
+3. 提交发版改动。
+4. 创建同名 git tag，例如 `2026.5.25`。
+5. 基于该 tag 创建 GitHub Release。
+6. npm publish 单独决策；不要把 npm 发布作为该流程的自动步骤。
 
 ## 开发
 

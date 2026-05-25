@@ -28,6 +28,25 @@ Requires Node.js ≥ 18 and pnpm (or npm — `package-lock.json` is not checked 
 
 Keep commits focused; squash noise locally before pushing.
 
+## Versioning
+
+claudoctor uses the same CalVer rules documented in `README.md`: release
+versions use `YYYY.M.D` with no zero padding, and same-day follow-up releases
+append `.N`, such as `2026.5.25.1`.
+
+## Release process
+
+For maintainers preparing a release:
+
+1. Confirm the changelog describes the release.
+2. Update `package.json` `version` to the CalVer value.
+3. Run `pnpm install` if package metadata changes require lockfile refresh.
+4. Run `pnpm test`, `pnpm lint`, and `pnpm build`.
+5. Commit the release changes.
+6. Tag the commit with the same CalVer value, for example `2026.5.25`.
+7. Create the GitHub Release from that tag.
+8. Leave npm publishing to a separate explicit decision.
+
 ## Code style
 
 - TypeScript strict mode. No `any` without a comment justifying it.
