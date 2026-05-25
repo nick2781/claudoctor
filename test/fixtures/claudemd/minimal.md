@@ -1,12 +1,3 @@
----
-name: minimal
-owner: docs
----
+# Minimal
 
-# Tone
-
-Use concise replies.
-
-# Tools
-
-- Prefer the project scripts.
+Some prose without directive rules.

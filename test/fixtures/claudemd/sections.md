@@ -1,15 +1,21 @@
 ---
-name: sections
+owner: platform
+version: 1
+tags:
+  - codex
 ---
 
-# Tone
+# Workflow
 
-Use concise replies.
+- Use pnpm for project commands.
+- Prefer small focused commits.
 
-## Details
+IMPORTANT: Verify behavior before reporting success.
 
-- Prefer direct language.
+## Output
 
-# Tools
+1. Format final answers as concise markdown.
 
-Do not skip verification.
+### Details
+
+Always include relevant file paths.

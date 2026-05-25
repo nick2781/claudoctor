@@ -2,72 +2,51 @@ import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { parseClaudeMd } from '../../src/lib/claudemd/parse.js';
 
-const fixture = (name: string) => path.join(process.cwd(), 'test/fixtures/claudemd', name);
+const fixturePath = (name: string): string => path.join(process.cwd(), 'test/fixtures/claudemd', name);
 
 describe('parseClaudeMd', () => {
-  it('parses frontmatter, body, token count, and total line count', async () => {
-    const doc = await parseClaudeMd(fixture('minimal.md'));
+  it('parses frontmatter, sections, bullet rules, and emphasized lines', async () => {
+    const doc = await parseClaudeMd(fixturePath('sections.md'));
 
-    expect(doc.path).toBe(fixture('minimal.md'));
-    expect(doc.frontmatter).toMatchObject({ name: 'minimal', owner: 'docs' });
-    expect(doc.body).toContain('# Tone');
+    expect(doc.frontmatter).toMatchObject({ owner: 'platform', version: 1 });
+    expect(doc.raw).toContain('owner: platform');
+    expect(doc.body).toContain('# Workflow');
     expect(doc.tokens).toBeGreaterThan(0);
-    expect(doc.lineCount).toBe(12);
-  });
-
-  it('parses files without frontmatter', async () => {
-    const doc = await parseClaudeMd(fixture('no-frontmatter.md'));
-
-    expect(doc.frontmatter).toEqual({});
-    expect(doc.sections.map((section) => section.heading)).toEqual(['Guide']);
-    expect(doc.rules).toEqual([
-      expect.objectContaining({
-        text: 'Always read the issue first.',
-        line: 3,
-        section: 'Guide',
-        imperative: true,
-      }),
-    ]);
-  });
-
-  it('splits sections on same or higher-level headings and preserves source line numbers', async () => {
-    const doc = await parseClaudeMd(fixture('sections.md'));
-
-    expect(doc.sections).toEqual([
-      expect.objectContaining({
-        heading: 'Tone',
-        level: 1,
-        startLine: 5,
-        body: expect.stringContaining('## Details'),
-      }),
-      expect.objectContaining({
-        heading: 'Details',
-        level: 2,
-        startLine: 9,
-        body: expect.stringContaining('- Prefer direct language.'),
-      }),
-      expect.objectContaining({
-        heading: 'Tools',
-        level: 1,
-        startLine: 13,
-        body: expect.stringContaining('Do not skip verification.'),
-      }),
-    ]);
-    expect(doc.sections[0]!.body).not.toContain('# Tools');
-  });
-
-  it('extracts unordered, ordered, and imperative paragraph rules', async () => {
-    const doc = await parseClaudeMd(fixture('bullets.md'));
+    expect(doc.lineCount).toBe(doc.raw.split(/\r?\n/).length);
+    expect(doc.sections.map((section) => section.heading)).toEqual(['Workflow', 'Output', 'Details']);
+    expect(doc.sections.map((section) => section.level)).toEqual([1, 2, 3]);
+    expect(doc.sections[0]!.startLine).toBe(8);
+    expect(doc.sections[0]!.body).toContain('- Use pnpm');
 
     expect(doc.rules.map((rule) => rule.text)).toEqual([
-      'Always test parser behavior.',
-      'Never ignore command failures.',
-      'Use stable fixtures.',
-      'Avoid vague assertions.',
-      'Should preserve imperative paragraphs.',
+      'Use pnpm for project commands.',
+      'Prefer small focused commits.',
+      'IMPORTANT: Verify behavior before reporting success.',
+      'Format final answers as concise markdown.',
+      'Always include relevant file paths.',
     ]);
-    expect(doc.rules.map((rule) => rule.line)).toEqual([3, 4, 5, 6, 8]);
-    expect(doc.rules.every((rule) => rule.section === 'Rules')).toBe(true);
-    expect(doc.rules.every((rule) => rule.imperative)).toBe(true);
+    expect(doc.rules.map((rule) => rule.section)).toEqual(['Workflow', 'Workflow', 'Workflow', 'Output', 'Details']);
+    expect(doc.rules[2]!.line).toBe(13);
+    expect(doc.rules[2]!.imperative).toBe(true);
+    expect(doc.rules[2]!.emphasized).toBe(true);
+  });
+
+  it('does not extract bullets inside fenced code blocks', async () => {
+    const doc = await parseClaudeMd(fixturePath('ignored.md'));
+
+    expect(doc.rules.map((rule) => rule.text)).toEqual(['Keep this visible rule.', 'Use visible rules after fences.']);
+  });
+
+  it('does not extract blockquoted emphasized lines', async () => {
+    const doc = await parseClaudeMd(fixturePath('ignored.md'));
+
+    expect(doc.rules.find((rule) => rule.text.includes('quoted warnings'))).toBeUndefined();
+  });
+
+  it('does not treat fenced headings as sections', async () => {
+    const doc = await parseClaudeMd(fixturePath('ignored.md'));
+
+    expect(doc.sections.map((section) => section.heading)).toEqual(['Ignored Examples', 'After Fence']);
+    expect(doc.rules.map((rule) => rule.section)).toEqual(['Ignored Examples', 'After Fence']);
   });
 });
