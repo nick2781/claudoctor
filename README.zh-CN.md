@@ -2,7 +2,7 @@
 
 [English](README.md) · **简体中文**
 
-> Agent skills 的 lint 工具。审计并清理你的 Claude Code / Codex / Cursor / Hermes skills —— 找出重复、冲突和 token 大户。
+> Agent skills 与 CLAUDE.md 的 lint 工具。审计并清理你的 Claude Code / Codex / Cursor / Hermes skills —— 找出重复、冲突和 token 大户 —— 同时诊断 CLAUDE.md 里啰嗦 / 含糊 / 反效果的规则。
 
 [![npm version](https://img.shields.io/npm/v/claudoctor.svg)](https://www.npmjs.com/package/claudoctor)
 [![CI](https://github.com/nick2781/claudoctor/actions/workflows/ci.yml/badge.svg)](https://github.com/nick2781/claudoctor/actions/workflows/ci.yml)
@@ -93,11 +93,42 @@ claudoctor skills --json | jq '.savings'
 claudoctor skills --json | jq '.duplicates[] | {name, copies, wastedTokens}'
 ```
 
+## `claudoctor claudemd`
+
+诊断 `CLAUDE.md`。识别 token 膨胀、规则过载、含糊 / 啰嗦 / 反效果的指令、缺失的最佳实践小节（Tone、Tools…）和自相矛盾的规则；可选地让 Claude 再做一次交叉复核，补静态规则漏掉的问题。
+
+```bash
+claudoctor claudemd                         # 先找 ./CLAUDE.md，再找 ~/.claude/CLAUDE.md
+claudoctor claudemd path/to/CLAUDE.md       # 显式路径
+claudoctor claudemd --json                  # 机器可读 DoctorReport
+claudoctor claudemd --text                  # 终端彩色文本
+claudoctor claudemd --llm                   # 通过 Claude API 交叉复核
+claudoctor claudemd --no-llm                # 即使设了 ANTHROPIC_API_KEY 也跳过 LLM
+claudoctor claudemd --model claude-haiku-4-5-20251001
+claudoctor claudemd --output report.md      # 写入文件
+```
+
+LLM 复核是可选的：设了 `ANTHROPIC_API_KEY` 就默认开；想关用 `--no-llm`。缺 key 时自动降级到纯静态规则，并在 stderr 打一行提示。
+
+### 它报告什么
+
+- **Token 膨胀** —— 单文件超过 5 000 / 15 000 token（warn / error）
+- **规则过载** —— 单个文件里 `MUST` / `NEVER` 这类祈使规则太多
+- **啰嗦 / 含糊** —— 过长的规则、weasel 词（"适当"、"在合适时"）
+- **反效果** —— 已知会让 agent 行为变差的模式
+- **冲突** —— 同一小节内自相矛盾的规则
+- **缺失最佳实践小节** —— Tone、Tools、Workflow……
+- **结构问题** —— 缺 frontmatter、坏标题、emphasis 滥用
+- **LLM 交叉复核**（可选）—— 让 Claude 读全文，补静态规则漏掉的问题
+
+只要出现 `error` 级别 finding，退出码就是 `1`（方便接 CI）。
+
 ## 路线图
 
 - **v0.1** —— `claudoctor skills`：静态分析、token 排序、重复 / 冲突 / overlap 检测 ✅
 - **v0.2** —— `bodyHash` 近似重复检测、`--deep` body 相似度 overlap、项目级 `.cursor/rules`、`--exclude` glob 过滤 ✅
-- **v0.3** —— 重复 / 近似重复的自动 fix / merge；HTML 报告；远端 skill-pack 仓库
+- **v0.3** —— `claudoctor claudemd`：静态 + LLM 双重诊断 CLAUDE.md（token 膨胀、规则过载、含糊 / 啰嗦 / 反效果、缺失最佳实践小节）；md / text / JSON 输出 ✅
+- **v0.4** —— 重复 / 近似重复的自动 fix / merge；HTML 报告；远端 skill-pack 仓库
 
 发布说明见 [CHANGELOG.md](CHANGELOG.md)。
 
@@ -115,15 +146,24 @@ pnpm lint            # tsc --noEmit
 
 ```
 src/
-  cli.ts             commander 装配
-  commands/skills.ts 顶层 `skills` 命令
+  cli.ts                  commander 装配
+  commands/
+    skills.ts             顶层 `skills` 命令
+    claudemd.ts           顶层 `claudemd` 命令
   lib/
-    sources.ts       每个 agent 的已知 skill 位置
-    discover.ts      文件发现 + 哈希（contentHash / bodyHash）
-    tokens.ts        @anthropic-ai/tokenizer 封装
-    analyze.ts       重复 / 近似重复 / 冲突 / overlap 检测
-    report.ts        text + json 渲染器
-test/                vitest 单元测试 + fixtures
+    sources.ts            每个 agent 的已知 skill 位置
+    discover.ts           文件发现 + 哈希（contentHash / bodyHash）
+    tokens.ts             @anthropic-ai/tokenizer 封装
+    analyze.ts            重复 / 近似重复 / 冲突 / overlap 检测
+    report.ts             text + json 渲染器（skills）
+    claudemd/
+      types.ts            DoctorReport / Finding / Rule 契约
+      parse.ts            CLAUDE.md → frontmatter + sections + rules
+      rules.ts            驱动 rules.data.ts 的规则引擎
+      rules.data.ts       声明式规则定义
+      llm.ts              可选的 Claude API 交叉复核
+      report.ts           md / text / json 渲染器（claudemd）
+test/                     vitest 单元测试 + fixtures
 ```
 
 ## 贡献
