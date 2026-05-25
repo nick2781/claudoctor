@@ -4,13 +4,10 @@ import { tokens } from '../tokens.js';
 import type { ClaudeMd, Rule, Section } from './types.js';
 
 const headingRe = /^(#{1,6})\s+(.+?)\s*#*\s*$/;
-const bulletRe = /^\s*(?:[-*+]\s+|\d+\.\s+)(.+)$/;
+const bulletRe = /^\s*(?:[-*+]\s+|\d+[.)]\s+)(.+)$/;
 const fenceMarkerRe = /^\s*(`{3,}|~{3,})/;
-const triggerLineRe = /^\s*(?:\*\*)?(IMPORTANT|NEVER|ALWAYS|MUST|DO NOT|Note:)(?:\*\*)?(?=\s|:|$)/i;
-const imperativeRe =
-  /^(do|don't|never|always|use|avoid|prefer|ensure|make|run|check|read|write|skip|drop|keep|stop|return|reply|respond|ask|verify|test|format|wrap|escape|quote|set|unset|enable|disable|include|exclude|add|remove|delete|create|update|fix|fail|exit|call|invoke)\b/i;
-const triggerKeywordRe = /\b(IMPORTANT|NEVER|ALWAYS|MUST|DO NOT)\b|Note:/i;
-const emphasizedTriggerRe = /(\*\*\s*(?:IMPORTANT|NEVER|ALWAYS|MUST|DO NOT|Note:)\s*\*\*)|\b(?:IMPORTANT|NEVER|ALWAYS|MUST|DO NOT)\b/;
+const imperativeRe = /^(?:always|never|do not|don't|must|should|avoid|use|prefer|stop|only|if)\b/i;
+const allCapsEmphasisRe = /\b(?:IMPORTANT|CRITICAL|NEVER|ALWAYS)\b/;
 
 interface Heading {
   heading: string;
@@ -36,7 +33,10 @@ function bodyStartLine(raw: string, body: string): number {
 }
 
 function cleanRuleText(text: string): string {
-  return text.replace(/\*\*/g, '').replace(/\s+/g, ' ').trim();
+  return text
+    .replace(/^\s*\*\*(.+?)\*\*\s*$/, '$1')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 function nextFence(line: string, current: Fence | undefined): Fence | undefined {
@@ -52,12 +52,18 @@ function nextFence(line: string, current: Fence | undefined): Fence | undefined 
 
 function makeRule(text: string, line: number, section: string, sourceLine: string): Rule {
   const cleaned = cleanRuleText(text);
+  const source = sourceLine.trim();
   return {
     text: cleaned,
     line,
     section,
-    imperative: imperativeRe.test(cleaned) || triggerKeywordRe.test(cleaned),
-    emphasized: emphasizedTriggerRe.test(sourceLine) || emphasizedTriggerRe.test(cleaned),
+    imperative: imperativeRe.test(cleaned),
+    emphasized:
+      /^\*\*[\s\S]+\*\*$/.test(text.trim()) ||
+      /^\*\*[\s\S]+\*\*$/.test(source) ||
+      allCapsEmphasisRe.test(sourceLine) ||
+      allCapsEmphasisRe.test(cleaned) ||
+      /!!!\s*$/.test(sourceLine),
   };
 }
 
@@ -102,7 +108,7 @@ function parseSections(lines: string[], headings: Heading[]): Section[] {
   }
 
   headings.forEach((heading, index) => {
-    const next = headings[index + 1];
+    const next = headings.slice(index + 1).find((candidate) => candidate.level <= heading.level);
     const end = next ? next.bodyLine : lines.length;
     sections.push({
       heading: heading.heading,
@@ -137,7 +143,6 @@ function parseRules(lines: string[], headings: Heading[], startLine: number): Ru
     if (fence || /^\s*>/.test(line)) return;
 
     const bulletMatch = bulletRe.exec(line);
-    const triggerMatch = triggerLineRe.exec(line);
     const section = sectionAtLine(headings, index);
     const rawLine = startLine + index;
 
@@ -146,7 +151,7 @@ function parseRules(lines: string[], headings: Heading[], startLine: number): Ru
       return;
     }
 
-    if (triggerMatch) {
+    if (imperativeRe.test(cleanRuleText(line))) {
       rules.push(makeRule(line.trim(), rawLine, section, line));
     }
   });

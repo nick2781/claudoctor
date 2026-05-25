@@ -1,303 +1,162 @@
-import { tokens } from '../tokens.js';
-import type { Category, ClaudeMd, Finding, Severity } from './types.js';
+import type { Category, ClaudeMd, Severity } from './types.js';
 
-export interface RuleDef {
+export interface RuleSpec {
   id: string;
   category: Category;
   severity: Severity;
-  description: string;
-  check: (doc: ClaudeMd) => Finding[] | null;
+  check: (doc: ClaudeMd) => {
+    matched: boolean;
+    message: string;
+    line?: number;
+    ruleText?: string;
+    suggestion?: string;
+  }[];
 }
 
-function finding(
-  id: string,
-  severity: Severity,
-  category: Category,
-  message: string,
-  extras: Omit<Partial<Finding>, 'id' | 'severity' | 'category' | 'message' | 'source'> = {},
-): Finding {
-  return { id, severity, category, message, source: 'rules', ...extras };
+type RuleMatch = ReturnType<RuleSpec['check']>[number];
+
+function finding(message: string, extras: Omit<Partial<RuleMatch>, 'matched' | 'message'> = {}): RuleMatch {
+  return { matched: true, message, ...extras };
 }
 
-function normalizeRule(text: string): string {
-  return text
-    .toLowerCase()
-    .replace(/[^\w\s]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
+function hasSection(doc: ClaudeMd, re: RegExp): boolean {
+  return doc.sections.some((section) => re.test(section.heading));
 }
 
-function firstMatch(text: string, re: RegExp): string | undefined {
-  const match = re.exec(text);
-  return match?.[0];
+function normalizeNoun(text: string): string | undefined {
+  const match = /^(?:always|never|don't|do not|do)\s+([a-z][a-z0-9_-]*)/i.exec(text.trim());
+  return match?.[1]?.toLowerCase();
 }
 
-function hasRule(doc: ClaudeMd, re: RegExp): boolean {
-  return doc.rules.some((rule) => re.test(rule.text));
-}
-
-export const RULES: RuleDef[] = [
+export const ruleset: RuleSpec[] = [
   {
-    id: 'token-bloat-overall',
+    id: 'token-bloat',
     category: 'token-bloat',
     severity: 'warn',
-    description: 'Warn when CLAUDE.md is large enough to dilute attention.',
     check: (doc) =>
-      doc.tokens > 4000
-        ? [
-            finding(
-              'token-bloat-overall',
-              'warn',
-              'token-bloat',
-              `CLAUDE.md is ${doc.tokens} tokens; >4000 tokens dilutes attention. Trim non-essential context.`,
-            ),
-          ]
-        : null,
+      doc.tokens > 5000
+        ? [finding(`CLAUDE.md is ${doc.tokens} tokens; trim non-essential context above 5000 tokens.`)]
+        : [],
   },
   {
-    id: 'token-bloat-critical',
+    id: 'token-bloat-extreme',
     category: 'token-bloat',
     severity: 'error',
-    description: 'Error when CLAUDE.md is critically large.',
     check: (doc) =>
-      doc.tokens > 8000
-        ? [
-            finding(
-              'token-bloat-critical',
-              'error',
-              'token-bloat',
-              `CLAUDE.md is ${doc.tokens} tokens; >8000 tokens severely degrades performance.`,
-            ),
-          ]
-        : null,
+      doc.tokens > 15000
+        ? [finding(`CLAUDE.md is ${doc.tokens} tokens; split or aggressively trim files above 15000 tokens.`)]
+        : [],
   },
   {
     id: 'rule-overload',
     category: 'rule-overload',
     severity: 'warn',
-    description: 'Warn when the file contains too many extracted rules.',
     check: (doc) =>
-      doc.rules.length > 40
-        ? [
-            finding(
-              'rule-overload',
-              'warn',
-              'rule-overload',
-              `${doc.rules.length} rules; agents skim past ~40 rules. Consolidate or move stale ones.`,
-            ),
-          ]
-        : null,
+      doc.rules.length > 50
+        ? [finding(`${doc.rules.length} extracted rules; consolidate rules above 50.`)]
+        : [],
   },
   {
-    id: 'verbose-section',
+    id: 'verbose-rule',
     category: 'verbose',
-    severity: 'info',
-    description: 'Flag sections with verbose bodies.',
-    check: (doc) => {
-      const findings = doc.sections
-        .filter((section) => tokens(section.body) > 600)
-        .map((section) =>
-          finding(
-            `verbose-section:${section.startLine}`,
-            'info',
-            'verbose',
-            `Section "${section.heading || 'preamble'}" is ${tokens(section.body)} tokens; trim or split it.`,
-            { line: section.startLine },
-          ),
-        );
-      return findings.length ? findings : null;
-    },
+    severity: 'warn',
+    check: (doc) =>
+      doc.rules
+        .filter((rule) => rule.text.length > 200)
+        .map((rule) =>
+          finding('Rule is over 200 characters; split or trim it.', {
+            line: rule.line,
+            ruleText: rule.text,
+            suggestion: 'Keep each rule short enough to scan quickly.',
+          }),
+        ),
   },
   {
     id: 'vague-rule',
     category: 'vague',
     severity: 'info',
-    description: 'Flag vague words in rule text.',
     check: (doc) => {
-      const vagueRe = /\b(properly|appropriately|carefully|nicely|good|well|reasonable|where appropriate)\b/i;
-      const findings = doc.rules.flatMap((rule) => {
-        const word = firstMatch(rule.text, vagueRe);
-        return word
-          ? [
-              finding(
-                `vague-rule:${rule.line}`,
-                'info',
-                'vague',
-                `Vague word "${word}" in rule: ${rule.text}`,
-                { line: rule.line, ruleText: rule.text },
-              ),
-            ]
-          : [];
-      });
-      return findings.length ? findings : null;
-    },
-  },
-  {
-    id: 'pleasantry-instruction',
-    category: 'counterproductive',
-    severity: 'warn',
-    description: 'Flag instructions that encourage filler pleasantries.',
-    check: (doc) => {
-      const pleasantryRe = /\b(be polite|be friendly|be nice|be kind|be helpful|sure!?|certainly|of course|happy to)\b/i;
-      const findings = doc.rules
-        .filter((rule) => pleasantryRe.test(rule.text))
+      const vagueStartRe = /^(?:be |try to |do your best|as needed|when appropriate)/i;
+      const vagueWordRe = /\b(?:helpful|smart)\b/i;
+      return doc.rules
+        .filter((rule) => vagueStartRe.test(rule.text) || vagueWordRe.test(rule.text))
         .map((rule) =>
-          finding(
-            `pleasantry-instruction:${rule.line}`,
-            'warn',
-            'counterproductive',
-            'Pleasantries are filler; remove this instruction.',
-            { line: rule.line, ruleText: rule.text },
-          ),
-        );
-      return findings.length ? findings : null;
-    },
-  },
-  {
-    id: 'non-actionable-rule',
-    category: 'vague',
-    severity: 'info',
-    description: 'Flag long prose rules that are not imperative.',
-    check: (doc) => {
-      const findings = doc.rules
-        .filter((rule) => !rule.imperative && rule.text.length > 80)
-        .map((rule) =>
-          finding(
-            `non-actionable-rule:${rule.line}`,
-            'info',
-            'vague',
-            'Rule reads like prose; rewrite it as an imperative.',
-            { line: rule.line, ruleText: rule.text },
-          ),
-        );
-      return findings.length ? findings : null;
-    },
-  },
-  {
-    id: 'duplicate-rule',
-    category: 'structural',
-    severity: 'info',
-    description: 'Flag duplicate extracted rules.',
-    check: (doc) => {
-      const firstLineByText = new Map<string, number>();
-      const findings: Finding[] = [];
-      for (const rule of doc.rules) {
-        const normalized = normalizeRule(rule.text);
-        const firstLine = firstLineByText.get(normalized);
-        if (firstLine === undefined) {
-          firstLineByText.set(normalized, rule.line);
-        } else {
-          findings.push(
-            finding(`duplicate-rule:${rule.line}`, 'info', 'structural', `Duplicate rule of line ${firstLine}.`, {
-              line: rule.line,
-              ruleText: rule.text,
-            }),
-          );
-        }
-      }
-      return findings.length ? findings : null;
-    },
-  },
-  {
-    id: 'missing-tone-guidance',
-    category: 'missing-best-practice',
-    severity: 'info',
-    description: 'Suggest adding tone guidance when absent.',
-    check: (doc) =>
-      !hasRule(doc, /\b(tone|terse|concise|brief|short)\b/i) && !hasRule(doc, /\b(verbose|long|detail)\b/i)
-        ? [
-            finding(
-              'missing-tone-guidance',
-              'info',
-              'missing-best-practice',
-              'Consider stating preferred tone (concise vs detailed).',
-            ),
-          ]
-        : null,
-  },
-  {
-    id: 'missing-output-format',
-    category: 'missing-best-practice',
-    severity: 'info',
-    description: 'Suggest adding output format guidance when absent.',
-    check: (doc) =>
-      !hasRule(doc, /\b(output|format|markdown|json)\b/i)
-        ? [
-            finding(
-              'missing-output-format',
-              'info',
-              'missing-best-practice',
-              'Consider stating expected output format.',
-            ),
-          ]
-        : null,
-  },
-  {
-    id: 'conflict-tone',
-    category: 'conflict',
-    severity: 'warn',
-    description: 'Flag contradictory tone instructions.',
-    check: (doc) =>
-      hasRule(doc, /\b(concise|terse|brief|short)\b/i) && hasRule(doc, /\b(verbose|long|detail|detailed|thorough|thoroughly)\b/i)
-        ? [finding('conflict-tone', 'warn', 'conflict', 'Tone rules conflict.')]
-        : null,
-  },
-  {
-    id: 'large-frontmatter',
-    category: 'structural',
-    severity: 'info',
-    description: 'Flag large frontmatter blocks.',
-    check: (doc) => {
-      const count = Object.keys(doc.frontmatter).length;
-      return count > 10
-        ? [finding('large-frontmatter', 'info', 'structural', `Frontmatter has ${count} top-level keys; keep metadata minimal.`)]
-        : null;
-    },
-  },
-  {
-    id: 'no-headings',
-    category: 'structural',
-    severity: 'info',
-    description: 'Suggest headings for long unstructured files.',
-    check: (doc) =>
-      doc.sections.length <= 1 && doc.tokens > 800
-        ? [finding('no-headings', 'info', 'structural', 'Structure with H2 sections for skimmability.')]
-        : null,
-  },
-  {
-    id: 'oversized-rule',
-    category: 'verbose',
-    severity: 'info',
-    description: 'Flag individual rules that are too long.',
-    check: (doc) => {
-      const findings = doc.rules
-        .filter((rule) => rule.text.length > 240)
-        .map((rule) =>
-          finding(`oversized-rule:${rule.line}`, 'info', 'verbose', 'Rule is over 240 characters; split or trim it.', {
+          finding('Rule is vague; describe a concrete behavior.', {
             line: rule.line,
             ruleText: rule.text,
           }),
         );
-      return findings.length ? findings : null;
     },
   },
   {
-    id: 'negation-overload',
+    id: 'emphasis-spam',
+    category: 'counterproductive',
+    severity: 'warn',
+    check: (doc) => {
+      if (doc.rules.length === 0) return [];
+      const emphasized = doc.rules.filter((rule) => rule.emphasized).length;
+      return emphasized / doc.rules.length > 0.3
+        ? [finding(`${emphasized}/${doc.rules.length} rules are emphasized; when everything is important, nothing is.`)]
+        : [];
+    },
+  },
+  {
+    id: 'allcaps-shout',
     category: 'counterproductive',
     severity: 'info',
-    description: 'Flag rule sets dominated by negative phrasing.',
+    check: (doc) =>
+      doc.rules
+        .filter((rule) => rule.text.length > 40 && rule.text === rule.text.toUpperCase() && /[A-Z]/.test(rule.text))
+        .map((rule) =>
+          finding('Rule is an all-caps shout; rewrite it in normal sentence case.', {
+            line: rule.line,
+            ruleText: rule.text,
+          }),
+        ),
+  },
+  {
+    id: 'contradiction',
+    category: 'conflict',
+    severity: 'error',
     check: (doc) => {
-      const negative = doc.rules.filter((rule) => /^(don't|never|avoid|no)\b/i.test(rule.text)).length;
-      return doc.rules.length >= 10 && negative / doc.rules.length > 0.3
-        ? [
-            finding(
-              'negation-overload',
-              'info',
-              'counterproductive',
-              'Heavy negation; rewrite as positive guidance.',
-            ),
-          ]
-        : null;
+      const always = new Map<string, RuleMatch>();
+      const never = new Map<string, RuleMatch>();
+
+      for (const rule of doc.rules) {
+        const noun = normalizeNoun(rule.text);
+        if (!noun) continue;
+
+        const match = finding(`Conflicting rule around "${noun}".`, {
+          line: rule.line,
+          ruleText: rule.text,
+        });
+        if (/^always\b/i.test(rule.text)) always.set(noun, match);
+        if (/^(?:never|don't|do not)\b/i.test(rule.text)) never.set(noun, match);
+      }
+
+      const findings: RuleMatch[] = [];
+      for (const [noun, match] of always.entries()) {
+        if (never.has(noun)) findings.push(match);
+      }
+      return findings;
     },
+  },
+  {
+    id: 'missing-tone',
+    category: 'missing-best-practice',
+    severity: 'info',
+    check: (doc) =>
+      hasSection(doc, /(?:tone|style|communication)/i)
+        ? []
+        : [finding('Add a Tone, Style, or Communication section.')],
+  },
+  {
+    id: 'missing-tool-policy',
+    category: 'missing-best-practice',
+    severity: 'info',
+    check: (doc) =>
+      hasSection(doc, /(?:tools|tooling|commands)/i)
+        ? []
+        : [finding('Add a Tools, Tooling, or Commands section.')],
   },
 ];
